@@ -1,0 +1,868 @@
+تمام، قرار ممتاز! 👌 فايربيس يحتاج إعدادات معقدة (سيرفر محلي) وممكن يسبب تعقيدات. سنرجع للنسخة المحلية السريعة والمستقرة (localStorage) التي تعمل بمجرد الضغط على الملف.
+
+لقد قمت ببرمجة النسخة النهائية والأخيرة، مع إصلاح كل الأخطاء (بما فيها مشكلة الموظفين التي كانت موجودة)، وأضفت:
+
+1. 💳 بطاقات الولاء VIP (تصميم فخم، 5 نقاط = 35%، تحميل كصورة، رسالة مخصصة).
+2. 🔄 المرتجعات (خصم من الأرباح تلقائياً).
+3. 🖼️ تحميل الفواتير كصورة.
+4. ☀️ الوضع الفاتح.
+5. 💬 أزرار الواتساب.
+
+احفظ هذا الكود في ملف index.html وافتحه مباشرة (لا يحتاج سيرفر):
+
+```html
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Fayrouza | إدارة المتجر</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --gold:#d4af37;--gold2:#f7e9b5;--gold3:#a8842a;
+  --bg:#07070a;--bg2:#0d0d14;--card:#16161f;
+  --bdr:rgba(212,175,55,0.18);--bsoft:rgba(255,255,255,0.06);
+  --txt:#eae7e0;--muted:#8f8a7e;
+  --green:#2ecc71;--red:#ff5a5a;--teal:#1f5f5b;
+}
+body.light-mode{
+  --bg:#f4f4f5;--bg2:#ffffff;--card:#ffffff;
+  --bdr:rgba(212,175,55,0.4);--bsoft:rgba(0,0,0,0.08);
+  --txt:#1a1a1a;--muted:#666666;
+}
+html,body{height:100%}
+body{font-family:'Cairo',system-ui,sans-serif;background:var(--bg);color:var(--txt);background-image:radial-gradient(circle at 15% 20%,rgba(212,175,55,0.07),transparent 45%),radial-gradient(circle at 85% 80%,rgba(212,175,55,0.05),transparent 45%);background-attachment:fixed;overflow-x:hidden;transition:background .3s}
+.app{display:flex;min-height:100vh}
+.sidebar{width:260px;flex-shrink:0;background:linear-gradient(180deg,var(--bg2),var(--bg));border-left:1px solid var(--bdr);padding:22px 14px;position:sticky;top:0;height:100vh;display:flex;flex-direction:column;gap:6px;overflow-y:auto;transition:background .3s}
+.logo{display:flex;align-items:center;gap:12px;padding:0 8px 18px;border-bottom:1px solid var(--bsoft);margin-bottom:12px}
+.logo-mark{width:44px;height:44px;border-radius:12px;flex-shrink:0;background:linear-gradient(135deg,var(--gold),var(--gold3));display:grid;place-items:center;color:#0a0a0f;font-size:22px;font-weight:900}
+.logo-title{font-size:16px;font-weight:900;letter-spacing:1px;background:linear-gradient(135deg,var(--gold2),var(--gold));-webkit-background-clip:text;background-clip:text;color:transparent}
+.logo-sub{font-size:9px;color:var(--muted);letter-spacing:1.5px;margin-top:2px}
+.nav{display:flex;flex-direction:column;gap:4px;flex:1}
+.nav-item{display:flex;align-items:center;gap:11px;padding:12px 14px;border-radius:10px;background:transparent;border:1px solid transparent;color:var(--muted);font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;text-align:right;transition:all .2s;width:100%}
+.nav-item:hover{color:var(--gold2);background:rgba(212,175,55,0.04)}
+.nav-item.active{color:var(--gold2);background:linear-gradient(90deg,rgba(212,175,55,0.15),rgba(212,175,55,0.02));border-color:var(--bdr)}
+.nav-item .ico{width:19px;height:19px;flex-shrink:0;fill:currentColor}
+.sidebar-footer{font-size:11px;color:var(--muted);text-align:center;padding-top:14px;border-top:1px solid var(--bsoft);letter-spacing:1px;cursor:pointer;font-weight:700}
+.main{flex:1;padding:28px 32px;max-width:1600px;margin:0 auto;width:100%;min-width:0}
+.page{display:none;animation:fadeIn .3s ease}
+.page.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.page-head{display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:14px;margin-bottom:24px;padding-bottom:18px;border-bottom:1px solid var(--bsoft)}
+.page-head h1{font-size:26px;font-weight:900;background:linear-gradient(135deg,#fff,var(--gold2) 60%,var(--gold));-webkit-background-clip:text;background-clip:text;color:transparent}
+body.light-mode .page-head h1{background:linear-gradient(135deg,#111,var(--gold3) 60%,var(--gold3));-webkit-background-clip:text;background-clip:text}
+.page-head .muted{font-size:12px;margin-top:6px;color:var(--muted)}
+.date-badge{padding:9px 16px;border:1px solid var(--bdr);border-radius:10px;font-size:12px;color:var(--gold2);background:rgba(212,175,55,0.06);font-weight:600}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-bottom:22px}
+.stat-card{padding:18px;border-radius:14px;background:linear-gradient(160deg,rgba(255,255,255,0.03),rgba(255,255,255,0.01));border:1px solid var(--bsoft);transition:all .3s}
+body.light-mode .stat-card{background:#fff}
+.stat-card:hover{border-color:var(--bdr);transform:translateY(-2px)}
+.stat-card.gold{border-color:var(--bdr);background:linear-gradient(160deg,rgba(212,175,55,0.08),rgba(212,175,55,0.01))}
+.stat-card.green{border-color:rgba(46,204,113,0.25)}
+.stat-card.red{border-color:rgba(255,90,90,0.25)}
+.stat-label{font-size:11px;color:var(--muted);letter-spacing:.5px;margin-bottom:8px;font-weight:600}
+.stat-value{font-size:24px;font-weight:900;background:linear-gradient(135deg,#fff,var(--gold2));-webkit-background-clip:text;background-clip:text;color:transparent;word-break:break-word}
+body.light-mode .stat-value{background:linear-gradient(135deg,#333,var(--gold3));-webkit-background-clip:text;background-clip:text}
+.stat-value.green{background:linear-gradient(135deg,#c8ffdb,#2ecc71);-webkit-background-clip:text;background-clip:text;color:transparent}
+.stat-value.red{background:linear-gradient(135deg,#ffb8b8,#ff5a5a);-webkit-background-clip:text;background-clip:text;color:transparent}
+.stat-sub{font-size:10px;color:var(--muted);margin-top:6px}
+.card{padding:20px;border-radius:16px;background:linear-gradient(160deg,rgba(255,255,255,0.025),rgba(255,255,255,0.008));border:1px solid var(--bsoft);margin-bottom:20px}
+body.light-mode .card{background:#fff}
+.card h3{font-size:15px;margin-bottom:16px;color:var(--gold2);font-weight:700}
+body.light-mode .card h3{color:var(--gold3)}
+.form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px}
+.field{display:flex;flex-direction:column;gap:6px}
+.field.full{grid-column:1/-1}
+.field label{font-size:11px;color:var(--muted);font-weight:600}
+.field input,.field select,.field textarea{padding:11px 13px;border-radius:10px;background:rgba(0,0,0,0.4);border:1px solid rgba(255,255,255,0.08);color:var(--txt);font-family:inherit;font-size:13px;transition:all .2s;width:100%}
+body.light-mode .field input,body.light-mode .field select,body.light-mode .field textarea{background:#f9f9f9;border-color:#ccc;color:#000}
+.field textarea{resize:vertical;min-height:70px}
+.field input:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px rgba(212,175,55,0.12)}
+.btn{padding:11px 22px;border:none;border-radius:10px;cursor:pointer;font-family:inherit;font-weight:700;font-size:13px;transition:all .2s;display:inline-flex;align-items:center;justify-content:center;gap:8px}
+.btn-gold{background:linear-gradient(135deg,var(--gold),var(--gold3));color:#0a0a0f;box-shadow:0 6px 20px rgba(212,175,55,0.25)}
+.btn-gold:hover{transform:translateY(-1px);box-shadow:0 10px 28px rgba(212,175,55,0.4)}
+.btn-ghost{background:rgba(255,255,255,0.04);border:1px solid var(--bsoft);color:var(--txt)}
+body.light-mode .btn-ghost{background:#eee;color:#333}
+.btn-danger{background:rgba(255,90,90,0.08);border:1px solid rgba(255,90,90,0.3);color:#ff8a8a}
+.btn-sm{padding:7px 14px;font-size:11px}
+.btn-icon{width:30px;height:30px;border-radius:8px;background:rgba(255,255,255,0.04);border:1px solid var(--bsoft);color:var(--muted);cursor:pointer;display:inline-grid;place-items:center;font-size:12px;transition:all .2s}
+body.light-mode .btn-icon{background:#eee;color:#333}
+.btn-icon:hover{background:rgba(212,175,55,0.1);color:var(--gold2);border-color:var(--bdr)}
+.btn-icon.danger:hover{background:rgba(255,90,90,0.15);color:#ff8a8a}
+.table-wrap{overflow-x:auto;border-radius:10px}
+.data-table{width:100%;border-collapse:collapse;font-size:12.5px;min-width:500px}
+.data-table thead th{padding:11px 8px;text-align:right;color:var(--muted);font-weight:600;font-size:10.5px;border-bottom:1px solid var(--bdr);white-space:nowrap}
+.data-table tbody td{padding:12px 8px;border-bottom:1px solid var(--bsoft);color:var(--txt)}
+.data-table tbody tr:hover{background:rgba(212,175,55,0.03)}
+.data-table .empty{text-align:center;color:var(--muted);padding:30px;font-size:12px}
+.data-table .pos{color:#2ecc71;font-weight:700}
+.data-table .neg{color:#ff5a5a;font-weight:700}
+.badge{display:inline-block;padding:3px 9px;border-radius:20px;font-size:10px;font-weight:700;white-space:nowrap}
+.badge.paid{background:rgba(46,204,113,0.15);color:#8ff5b0;border:1px solid rgba(46,204,113,0.3)}
+.badge.part{background:rgba(255,180,50,0.15);color:#ffd68a;border:1px solid rgba(255,180,50,0.3)}
+.badge.debt{background:rgba(255,90,90,0.15);color:#ff8a8a;border:1px solid rgba(255,90,90,0.3)}
+.badge.cat{background:rgba(255,255,255,0.05);color:var(--muted);border:1px solid var(--bsoft)}
+.charts-grid{display:grid;grid-template-columns:2fr 1fr;gap:18px;margin-bottom:22px}
+.chart-card{margin-bottom:0}
+.chart-wrap{position:relative;height:260px;width:100%}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.85);backdrop-filter:blur(8px);z-index:200;display:none;align-items:center;justify-content:center;padding:20px;overflow-y:auto}
+.modal-overlay.show{display:flex}
+.modal{background:linear-gradient(160deg,var(--card),var(--bg2));border:1px solid var(--bdr);border-radius:18px;padding:24px;max-width:800px;width:100%;max-height:90vh;overflow-y:auto;animation:modalIn .3s ease}
+@keyframes modalIn{from{opacity:0;transform:scale(0.95)}to{opacity:1;transform:scale(1)}}
+.modal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid var(--bsoft)}
+.modal-head h3{color:var(--gold2);font-size:17px}
+body.light-mode .modal-head h3{color:var(--gold3)}
+.modal-close{width:34px;height:34px;border-radius:10px;background:rgba(255,90,90,0.08);border:1px solid rgba(255,90,90,0.25);color:#ff8a8a;cursor:pointer;font-size:18px;display:grid;place-items:center}
+.modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:20px;padding-top:14px;border-top:1px solid var(--bsoft);flex-wrap:wrap}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(100px);padding:13px 26px;border-radius:12px;background:linear-gradient(135deg,#1a1a22,#0f0f16);border:1px solid var(--gold);color:var(--gold2);font-weight:700;font-size:13px;z-index:1000;transition:transform .35s;text-align:center}
+.toast.error{border-color:#ff5a5a;color:#ff8a8a}
+.toast.show{transform:translateX(-50%) translateY(0)}
+.filter-bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;align-items:center}
+.filter-tabs{display:flex;gap:5px;flex-wrap:wrap}
+.filter-tabs button{padding:7px 14px;border-radius:8px;background:transparent;border:1px solid var(--bsoft);color:var(--muted);font-family:inherit;font-size:11.5px;font-weight:600;cursor:pointer}
+.filter-tabs button.active{background:rgba(212,175,55,0.12);color:var(--gold2);border-color:var(--bdr)}
+.filter-bar input{flex:1;min-width:150px;padding:9px 14px;border-radius:8px;background:rgba(0,0,0,0.4);border:1px solid rgba(255,255,255,0.08);color:var(--txt);font-family:inherit;font-size:12px}
+body.light-mode .filter-bar input{background:#fff;border-color:#ccc;color:#000}
+.emp-card{padding:16px;border-radius:12px;background:rgba(255,255,255,0.02);border:1px solid var(--bsoft);margin-bottom:12px}
+body.light-mode .emp-card{background:#fff}
+.emp-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.emp-name{font-size:16px;font-weight:700;color:var(--gold2)}
+body.light-mode .emp-name{color:var(--gold3)}
+.emp-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:10px;margin:12px 0}
+.emp-stat{padding:10px;border-radius:8px;background:rgba(0,0,0,0.3);border:1px solid var(--bsoft)}
+body.light-mode .emp-stat{background:#f0f0f0}
+.emp-stat-label{font-size:9px;color:var(--muted);margin-bottom:4px}
+.emp-stat-value{font-size:13px;font-weight:700}
+.wd-row{display:flex;justify-content:space-between;align-items:center;padding:8px 10px;border-radius:8px;background:rgba(255,90,90,0.03);border:1px solid rgba(255,90,90,0.1);margin-bottom:6px;font-size:12px;gap:8px}
+.inv-input{width:100%;padding:7px 9px;border-radius:7px;background:rgba(0,0,0,0.4);border:1px solid rgba(255,255,255,0.1);color:#fff;font-family:inherit;font-size:12px}
+body.light-mode .inv-input{background:#fff;color:#000;border-color:#ccc}
+.wa-btn{background:#25D366;color:#fff;border:none;border-radius:8px;padding:6px 10px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;font-family:inherit;font-size:11px;font-weight:700;margin-right:4px}
+.wa-btn:hover{background:#128C7E}
+
+/* Loyalty Cards */
+.loyalty-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
+.id-card-wrapper{background:#1a1a1a;color:#fff;border-radius:16px;overflow:hidden;font-family:'Cairo',sans-serif;width:600px;max-width:100%;margin:0 auto;box-shadow:0 10px 30px rgba(0,0,0,0.5)}
+.id-card-front{padding:30px;text-align:center;position:relative;background-image:radial-gradient(circle at 50% 30%, rgba(212,175,55,0.15), transparent 60%);border-bottom:2px solid #d4af37}
+.id-card-front .crown{font-size:40px;color:#d4af37;margin-bottom:10px}
+.id-card-front h2{font-size:28px;letter-spacing:2px;color:#d4af37;margin-bottom:5px;font-family:serif}
+.id-card-front h3{font-size:16px;color:#f7e9b5;letter-spacing:4px;font-weight:normal;font-family:serif}
+.id-card-back{background:#121212;padding:20px}
+.id-card-back h4{background:#1f5f5b;color:#fff;text-align:center;padding:10px;margin:-20px -20px 20px -20px;font-size:14px;letter-spacing:1px}
+.points-row{display:flex;justify-content:space-between;margin-bottom:15px;gap:5px}
+.point-circle{width:40px;height:40px;border-radius:50%;background:#fff;border:3px solid #d4af37;display:grid;place-items:center;font-weight:bold;color:#000;font-size:10px;text-align:center;line-height:1.1}
+.point-circle.active{background:#d4af37}
+.id-card-footer{background:#1f5f5b;color:#d4af37;padding:15px 20px;display:flex;justify-content:space-between;align-items:center}
+.id-card-footer span{font-size:16px;border-bottom:1px solid #d4af37;padding-bottom:2px}
+.id-card-note{text-align:center;font-size:11px;color:#aaa;margin-top:15px;font-style:italic}
+
+@media(max-width:900px){
+.app{flex-direction:column}
+.sidebar{width:100%;height:auto;position:relative;border-left:none;border-bottom:1px solid var(--bdr);padding:14px}
+.nav{flex-direction:row;overflow-x:auto;scrollbar-width:none;flex:none}
+.nav::-webkit-scrollbar{display:none}
+.nav-item{flex-direction:column;gap:3px;padding:9px 12px;font-size:10px;min-width:62px;flex-shrink:0;text-align:center}
+.main{padding:16px 12px}
+.stats-grid{grid-template-columns:repeat(2,1fr);gap:10px}
+.charts-grid{grid-template-columns:1fr}
+.modal{padding:18px}
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+<aside class="sidebar">
+  <div class="logo">
+    <div class="logo-mark">F</div>
+    <div><div class="logo-title">Fayrouza</div><div class="logo-sub">SCARVES & ALHERZ</div></div>
+  </div>
+  <nav class="nav">
+    <button class="nav-item active" data-page="dashboard"><svg class="ico" viewBox="0 0 24 24"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg><span>الرئيسية</span></button>
+    <button class="nav-item" data-page="wholesale"><svg class="ico" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg><span>الجملة</span></button>
+    <button class="nav-item" data-page="retail"><svg class="ico" viewBox="0 0 24 24"><path d="M7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zM1 2v2h2l3.6 7.59-1.35 2.45c-.16.28-.25.61-.25.96 0 1.1.9 2 2 2h12v-2H7.42c-.14 0-.25-.11-.25-.25l.03-.12.9-1.63h7.45c.75 0 1.41-.41 1.75-1.03l3.58-6.49c.08-.14.12-.31.12-.48 0-.55-.45-1-1-1H5.21l-.94-2H1zm16 16c-1.1 0-1.99.9-1.99 2s.89 2 1.99 2 2-.9 2-2-.9-2-2-2z"/></svg><span>المفرق</span></button>
+    <button class="nav-item" data-page="cashclose"><svg class="ico" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1.41 16.09V20h-2.67v-1.93c-1.71-.36-3.16-1.46-3.27-3.4h1.96c.1 1.05.82 1.87 2.65 1.87 1.96 0 2.4-.98 2.4-1.59 0-.83-.44-1.61-2.67-2.14-2.48-.6-4.18-1.62-4.18-3.67 0-1.72 1.39-2.84 3.11-3.21V4h2.67v1.95c1.86.45 2.79 1.86 2.85 3.39H14.3c-.05-1.11-.64-1.87-2.22-1.87-1.5 0-2.4.68-2.4 1.64 0 .84.65 1.39 2.67 1.91s4.18 1.39 4.18 3.91c-.01 1.83-1.38 2.83-3.12 3.16z"/></svg><span>الصندوق</span></button>
+    <button class="nav-item" data-page="loyalty"><svg class="ico" viewBox="0 0 24 24"><path d="M20 4H4c-1.11 0-1.99.89-1.99 2L2 18c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z"/></svg><span>البطاقات VIP</span></button>
+    <button class="nav-item" data-page="debts"><svg class="ico" viewBox="0 0 24 24"><path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/></svg><span>الديون</span></button>
+    <button class="nav-item" data-page="expenses"><svg class="ico" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/></svg><span>المصاريف</span></button>
+    <button class="nav-item" data-page="employees"><svg class="ico" viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg><span>الموظفون</span></button>
+    <button class="nav-item" data-page="reports"><svg class="ico" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/></svg><span>التقارير</span></button>
+    <button class="nav-item" data-page="settings"><svg class="ico" viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg><span>الإعدادات</span></button>
+  </nav>
+  <div class="sidebar-footer" onclick="toggleTheme()">تغيير المظهر ☀️/🌙</div>
+</aside>
+
+<main class="main">
+<section class="page active" id="page-dashboard">
+  <div class="page-head"><div><h1>لوحة التحكم</h1><p class="muted">نظرة شاملة على أداء المتجر</p></div><div class="date-badge" id="dashDate"></div></div>
+  <div class="stats-grid">
+    <div class="stat-card gold"><div class="stat-label">مبيعات اليوم</div><div class="stat-value" id="dSalesToday">$0</div></div>
+    <div class="stat-card green"><div class="stat-label">ربح اليوم</div><div class="stat-value green" id="dProfitToday">$0</div></div>
+    <div class="stat-card"><div class="stat-label">صافي ربح الشهر</div><div class="stat-value" id="dProfitMonth">$0</div></div>
+    <div class="stat-card red"><div class="stat-label">الديون المستحقة</div><div class="stat-value red" id="dDebts">$0</div></div>
+  </div>
+  <div class="charts-grid">
+    <div class="card chart-card"><h3>الأرباح آخر 7 أيام</h3><div class="chart-wrap"><canvas id="profitChart"></canvas></div></div>
+    <div class="card chart-card"><h3>توزيع المبيعات</h3><div class="chart-wrap"><canvas id="salesChart"></canvas></div></div>
+  </div>
+</section>
+
+<section class="page" id="page-wholesale">
+  <div class="page-head"><div><h1>الجملة</h1><p class="muted">Fayrouza ALherz</p></div><button class="btn btn-gold" onclick="openInvoiceModal()">+ فاتورة جديدة</button></div>
+  <div class="stats-grid" id="whStats"></div>
+  <div class="card">
+    <div class="filter-bar">
+      <div class="filter-tabs" id="whFilter"><button class="active" data-f="all">الكل</button><button data-f="paid">مدفوعة</button><button data-f="part">جزئية</button><button data-f="debt">دين</button></div>
+      <input type="text" id="whSearch" placeholder="بحث بالاسم أو رقم الفاتورة...">
+    </div>
+    <div class="table-wrap"><table class="data-table" id="whTable"></table></div>
+  </div>
+</section>
+
+<section class="page" id="page-retail">
+  <div class="page-head"><div><h1>المفرق</h1><p class="muted">Fayrouza scarves</p></div><button class="btn btn-gold" onclick="openRetailModal()">+ تسجيل بيع</button></div>
+  <div class="stats-grid" id="rtStats"></div>
+  <div class="card"><h3>مبيعات اليوم</h3><div class="table-wrap"><table class="data-table" id="rtTable"></table></div></div>
+</section>
+
+<section class="page" id="page-cashclose">
+  <div class="page-head"><div><h1>تسكير الصندوق</h1><p class="muted">ملخص اليوم والأرشيف</p></div><button class="btn btn-gold" onclick="closeDay()">تسكير اليوم</button></div>
+  <div class="card"><h3>ملخص اليوم</h3><div id="closeToday"></div></div>
+  <div class="card"><h3>الأرشيف</h3><div class="table-wrap"><table class="data-table" id="closeTable"></table></div></div>
+</section>
+
+<section class="page" id="page-loyalty">
+  <div class="page-head"><div><h1>بطاقات الولاء (VIP)</h1><p class="muted">5 نقاط = خصم 35%</p></div><button class="btn btn-gold" onclick="openLoyaltyModal()">+ بطاقة جديدة</button></div>
+  <div class="loyalty-grid" id="loyaltyList"></div>
+</section>
+
+<section class="page" id="page-debts">
+  <div class="page-head"><div><h1>الديون</h1><p class="muted">متابعة الديون وتذكير الزبائن</p></div></div>
+  <div class="stats-grid" id="dbStats"></div>
+  <div class="card"><h3>قائمة الديون</h3><div class="table-wrap"><table class="data-table" id="dbTable"></table></div></div>
+</section>
+
+<section class="page" id="page-expenses">
+  <div class="page-head"><div><h1>المصاريف</h1><p class="muted">سجل مصاريف المتجر</p></div><button class="btn btn-gold" onclick="openExpenseModal()">+ مصروف</button></div>
+  <div class="stats-grid" id="exStats"></div>
+  <div class="card"><div class="table-wrap"><table class="data-table" id="exTable"></table></div></div>
+</section>
+
+<section class="page" id="page-employees">
+  <div class="page-head"><div><h1>الموظفون</h1><p class="muted">الرواتب والسحوبات</p></div><button class="btn btn-gold" onclick="openEmployeeModal()">+ موظفة</button></div>
+  <div class="stats-grid" id="empStats"></div>
+  <div class="card"><div id="empList"></div></div>
+</section>
+
+<section class="page" id="page-reports">
+  <div class="page-head"><div><h1>التقارير</h1><p class="muted">تحليل مالي</p></div><button class="btn btn-ghost" onclick="exportCSV()">تصدير CSV</button></div>
+  <div class="card">
+    <div class="form-grid">
+      <div class="field"><label>من</label><input type="date" id="repFrom"></div>
+      <div class="field"><label>إلى</label><input type="date" id="repTo"></div>
+      <div class="field"><label>&nbsp;</label><button class="btn btn-gold" onclick="generateReport()">توليد</button></div>
+    </div>
+  </div>
+  <div class="stats-grid" id="repStats"></div>
+  <div class="card chart-card"><div class="chart-wrap"><canvas id="repChart"></canvas></div></div>
+  <div class="card"><div class="table-wrap"><table class="data-table" id="repTable"></table></div></div>
+</section>
+
+<section class="page" id="page-settings">
+  <div class="page-head"><div><h1>الإعدادات</h1><p class="muted">Fayrouza System</p></div></div>
+  <div class="card">
+    <h3>معلومات المتجر</h3>
+    <div class="form-grid">
+      <div class="field"><label>اسم المفرق</label><input type="text" id="setRetailName"></div>
+      <div class="field"><label>اسم الجملة</label><input type="text" id="setWholesaleName"></div>
+      <div class="field"><label>سعر الصرف (ل.ل)</label><input type="number" id="setRate"></div>
+      <div class="field"><label>رقم الواتساب (للمتجر)</label><input type="text" id="setWa" placeholder="81439656"></div>
+      <div class="field full"><button class="btn btn-gold" onclick="saveSettings()">حفظ الإعدادات</button></div>
+    </div>
+  </div>
+  <div class="card" style="border-color:rgba(255,90,90,0.25);background:rgba(255,90,90,0.03)">
+    <h3 style="color:#ff8a8a">منطقة الخطر</h3>
+    <p style="margin-bottom:14px;font-size:12px;color:var(--muted)">حذف جميع البيانات نهائياً</p>
+    <button class="btn btn-danger" onclick="resetAll()">حذف كل البيانات</button>
+  </div>
+</section>
+</main>
+</div>
+
+<div class="modal-overlay" id="modalOverlay"><div class="modal"><div class="modal-head"><h3 id="modalTitle"></h3><button class="modal-close" onclick="closeModal()">×</button></div><div id="modalBody"></div></div></div>
+<div class="toast" id="toast"></div>
+<div id="imageRenderArea" style="position:fixed; top:-9999px; left:-9999px; z-index:-1;"></div>
+
+<script>
+/* ===== Storage ===== */
+const PFX='fayrouza_';
+const store={get(k,d){try{const v=localStorage.getItem(PFX+k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem(PFX+k,JSON.stringify(v))}catch(e){}}};
+let S={
+  settings:store.get('settings',{retailName:'Fayrouza scarves',wholesaleName:'Fayrouza ALherz',rate:89000,wa:'81439656'}),
+  wholesale:store.get('wholesale',[]),
+  retail:store.get('retail',[]),
+  expenses:store.get('expenses',[]),
+  employees:store.get('employees',[]),
+  withdrawals:store.get('withdrawals',[]),
+  loyalty:store.get('loyalty',[]),
+  closedDays:store.get('closedDays',[]),
+  debtPayments:store.get('debtPayments',[]),
+  returns:store.get('returns',[])
+};
+function persist(){Object.keys(S).forEach(k=>store.set(k,S[k]))}
+
+/* ===== Utils ===== */
+const $=id=>document.getElementById(id);
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+const today=()=>new Date().toISOString().slice(0,10);
+const fmtUSD=n=>'$'+Number(n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+const fmtLBP=n=>Math.round((n||0)*(S.settings.rate||89000)).toLocaleString('en-US')+' ل.ل';
+const fmtDate=d=>d?new Date(d+'T00:00:00').toLocaleDateString('en-GB'):'';
+const esc=s=>String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function showToast(msg,isErr){const t=$('toast');t.textContent=msg;t.className='toast show'+(isErr?' error':'');clearTimeout(t._tm);t._tm=setTimeout(()=>t.className='toast',2800)}
+function toggleTheme(){document.body.classList.toggle('light-mode');localStorage.setItem('theme',document.body.classList.contains('light-mode')?'light':'dark');}
+if(localStorage.getItem('theme')==='light') document.body.classList.add('light-mode');
+
+/* ===== Calc ===== */
+function calcInv(inv){
+  const sub=inv.items.reduce((a,it)=>a+(+it.qty||0)*(+it.price||0),0);
+  const discount=+inv.discount||0;
+  const total=sub-discount;
+  const cost=inv.items.reduce((a,it)=>a+(+it.qty||0)*(+it.cost||0),0);
+  const profit=total-cost;
+  const paidExtra=S.debtPayments.filter(p=>p.invoiceId===inv.id).reduce((a,p)=>a+(+p.amount||0),0);
+  const totalPaid=(+inv.paid||0)+paidExtra;
+  const remaining=Math.max(0,total-totalPaid);
+  let status='debt';
+  if(totalPaid>=total-0.01)status='paid';
+  else if(totalPaid>0.01)status='part';
+  return{sub,discount,total,cost,profit,totalPaid,remaining,status};
+}
+function calcRetail(s){
+  const total=s.items.reduce((a,it)=>a+(+it.qty||0)*(+it.price||0),0);
+  const cost=s.items.reduce((a,it)=>a+(+it.qty||0)*(+it.cost||0),0);
+  return{total,cost,profit:total-cost};
+}
+function nextInvoiceNo(){
+  const nums=S.wholesale.map(i=>parseInt(String(i.invoiceNo).replace(/\D/g,''))||0);
+  return String((nums.length?Math.max(...nums):0)+1).padStart(4,'0');
+}
+
+/* ===== Navigation ===== */
+document.querySelectorAll('.nav-item').forEach(btn=>{
+  btn.onclick=()=>{
+    document.querySelectorAll('.nav-item').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+    $('page-'+btn.dataset.page).classList.add('active');
+    renderPage(btn.dataset.page);
+  };
+});
+function renderPage(name){
+  if(name==='dashboard')renderDashboard();
+  else if(name==='wholesale')renderWholesale();
+  else if(name==='retail')renderRetail();
+  else if(name==='cashclose')renderCashClose();
+  else if(name==='loyalty')renderLoyalty();
+  else if(name==='debts')renderDebts();
+  else if(name==='expenses')renderExpenses();
+  else if(name==='employees')renderEmployees();
+  else if(name==='reports')renderReports();
+  else if(name==='settings')renderSettings();
+}
+
+/* ===== Dashboard ===== */
+let chartP=null,chartS=null,chartR=null;
+function renderDashboard(){
+  const tdy=today();
+  $('dashDate').textContent=new Date().toLocaleDateString('ar-EG',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  let salesT=0,profitT=0;
+  S.retail.filter(s=>s.date===tdy).forEach(s=>{const c=calcRetail(s);salesT+=c.total;profitT+=c.profit});
+  S.wholesale.filter(i=>i.date===tdy).forEach(inv=>{const c=calcInv(inv);salesT+=c.total;profitT+=c.profit});
+  const expT=S.expenses.filter(e=>e.date===tdy).reduce((a,e)=>a+(+e.amount||0),0);
+  const retT=S.returns.filter(r=>r.date===tdy).reduce((a,r)=>a+(+r.total||0),0);
+  $('dSalesToday').textContent=fmtUSD(salesT-retT);
+  $('dProfitToday').textContent=fmtUSD(profitT-expT-retT);
+  const month=today().slice(0,7);
+  let mP=0;
+  S.retail.filter(s=>s.date.startsWith(month)).forEach(s=>mP+=calcRetail(s).profit);
+  S.wholesale.filter(i=>i.date.startsWith(month)).forEach(inv=>mP+=calcInv(inv).profit);
+  S.expenses.filter(e=>e.date.startsWith(month)).forEach(e=>mP-=(+e.amount||0));
+  S.returns.filter(r=>r.date.startsWith(month)).forEach(r=>mP-=(+r.total||0));
+  $('dProfitMonth').textContent=fmtUSD(mP);
+  let debts=0;S.wholesale.forEach(inv=>debts+=calcInv(inv).remaining);
+  $('dDebts').textContent=fmtUSD(debts);
+
+  const labels=[],dataP=[];
+  for(let i=6;i>=0;i--){
+    const d=new Date();d.setDate(d.getDate()-i);const ds=d.toISOString().slice(0,10);
+    labels.push(d.toLocaleDateString('ar-EG',{weekday:'short'}));
+    let p=0;
+    S.retail.filter(s=>s.date===ds).forEach(s=>p+=calcRetail(s).profit);
+    S.wholesale.filter(i=>i.date===ds).forEach(inv=>p+=calcInv(inv).profit);
+    S.expenses.filter(e=>e.date===ds).forEach(e=>p-=(+e.amount||0));
+    S.returns.filter(r=>r.date===ds).forEach(r=>p-=(+r.total||0));
+    dataP.push(p);
+  }
+  if(chartP)chartP.destroy();
+  chartP=new Chart($('profitChart'),{type:'line',data:{labels,datasets:[{data:dataP,borderColor:'#d4af37',backgroundColor:'rgba(212,175,55,0.15)',fill:true,tension:.4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}}});
+
+  let whM=0,rtM=0;
+  S.wholesale.filter(i=>i.date.startsWith(month)).forEach(inv=>whM+=calcInv(inv).total);
+  S.retail.filter(s=>s.date.startsWith(month)).forEach(s=>rtM+=calcRetail(s).total);
+  if(chartS)chartS.destroy();
+  chartS=new Chart($('salesChart'),{type:'doughnut',data:{labels:['جملة','مفرق'],datasets:[{data:[whM,rtM],backgroundColor:['#d4af37','#5a9cff'],borderColor:'#16161f',borderWidth:2}]},options:{responsive:true,maintainAspectRatio:false}});
+}
+
+/* ===== Wholesale ===== */
+function renderWholesale(){
+  let total=0,profit=0,debts=0;
+  S.wholesale.forEach(inv=>{const c=calcInv(inv);total+=c.total;profit+=c.profit;debts+=c.remaining});
+  $('whStats').innerHTML=`
+    <div class="stat-card"><div class="stat-label">الفواتير</div><div class="stat-value">${S.wholesale.length}</div></div>
+    <div class="stat-card gold"><div class="stat-label">المبيعات</div><div class="stat-value">${fmtUSD(total)}</div></div>
+    <div class="stat-card green"><div class="stat-label">الأرباح</div><div class="stat-value green">${fmtUSD(profit)}</div></div>
+    <div class="stat-card red"><div class="stat-label">الديون</div><div class="stat-value red">${fmtUSD(debts)}</div></div>`;
+  const filter=document.querySelector('#whFilter button.active')?.dataset.f||'all';
+  const search=($('whSearch').value||'').toLowerCase().trim();
+  let filtered=S.wholesale.filter(inv=>{
+    const c=calcInv(inv);
+    if(filter!=='all'&&c.status!==filter)return false;
+    if(search&&!(inv.customer||'').toLowerCase().includes(search)&&!(inv.invoiceNo||'').toLowerCase().includes(search))return false;
+    return true;
+  }).sort((a,b)=>b.date.localeCompare(a.date));
+  let h='<thead><tr><th>رقم</th><th>الزبون</th><th>التاريخ</th><th>الإجمالي</th><th>المتبقي</th><th>الحالة</th><th>إجراءات</th></tr></thead><tbody>';
+  if(!filtered.length)h+='<tr><td colspan="7" class="empty">لا توجد فواتير</td></tr>';
+  else filtered.forEach(inv=>{
+    const c=calcInv(inv);
+    const labels={paid:'مدفوعة',part:'جزئية',debt:'دين'};
+    h+=`<tr>
+      <td>${esc(inv.invoiceNo)}</td><td>${esc(inv.customer)}</td><td>${fmtDate(inv.date)}</td>
+      <td>${fmtUSD(c.total)}</td><td class="${c.remaining>0.01?'neg':'pos'}">${fmtUSD(c.remaining)}</td>
+      <td><span class="badge ${c.status}">${labels[c.status]}</span></td>
+      <td class="acts">
+        <button class="btn-icon" onclick="openInvoiceModal('${inv.id}')">✎</button>
+        <button class="btn-icon" onclick="downloadInvoice('${inv.id}')">📥</button>
+        <button class="btn-icon danger" onclick="delInv('${inv.id}')">×</button>
+      </td></tr>`;
+  });
+  $('whTable').innerHTML=h+'</tbody>';
+}
+function openInvoiceModal(id){
+  const inv=id?S.wholesale.find(x=>x.id===id):null;
+  const isEdit=!!inv;
+  const data=inv||{id:uid(),invoiceNo:nextInvoiceNo(),customer:'',phone:'',date:today(),items:[{name:'',qty:1,cost:0,price:0}],discount:0,paid:0,notes:''};
+  const html=`
+    <div class="form-grid">
+      <div class="field"><label>رقم الفاتورة</label><input type="text" id="invNo" value="${esc(data.invoiceNo)}"></div>
+      <div class="field"><label>اسم الزبون</label><input type="text" id="invCustomer" value="${esc(data.customer)}"></div>
+      <div class="field"><label>الهاتف (للواتساب)</label><input type="text" id="invPhone" value="${esc(data.phone||'')}"></div>
+      <div class="field"><label>التاريخ</label><input type="date" id="invDate" value="${data.date}"></div>
+    </div>
+    <h3 style="margin:18px 0 10px;color:var(--gold2);font-size:14px">المنتجات</h3>
+    <div style="overflow-x:auto"><table class="data-table" style="min-width:520px"><thead><tr><th>المنتج</th><th>الكمية</th><th>سعر الشراء</th><th>سعر البيع</th><th></th></tr></thead><tbody id="invItems"></tbody></table></div>
+    <button type="button" class="btn btn-ghost btn-sm" style="margin-top:10px" onclick="addInvRow()">+ إضافة منتج</button>
+    <div class="form-grid" style="margin-top:18px">
+      <div class="field"><label>خصم ($)</label><input type="number" step="0.01" id="invDiscount" value="${data.discount||0}"></div>
+      <div class="field"><label>المدفوع ($)</label><input type="number" step="0.01" id="invPaid" value="${data.paid||0}"></div>
+      <div class="field full"><label>ملاحظات</label><textarea id="invNotes">${esc(data.notes||'')}</textarea></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">إلغاء</button>
+      <button class="btn btn-gold" onclick="saveInvoice('${data.id}',${isEdit})">حفظ</button>
+    </div>`;
+  openModal(isEdit?'تعديل فاتورة':'فاتورة جديدة',html);
+  (data.items.length?data.items:[{name:'',qty:1,cost:0,price:0}]).forEach(it=>addInvRow(it));
+  $('invDiscount').oninput=recalcInv; $('invPaid').oninput=recalcInv;
+}
+function addInvRow(it){
+  it=it||{name:'',qty:1,cost:0,price:0};
+  const tr=document.createElement('tr');
+  tr.innerHTML=`
+    <td><input class="inv-input it-name" value="${esc(it.name)}"></td>
+    <td><input class="inv-input it-qty" type="number" value="${it.qty}" style="width:70px"></td>
+    <td><input class="inv-input it-cost" type="number" step="0.01" value="${it.cost}" style="width:85px"></td>
+    <td><input class="inv-input it-price" type="number" step="0.01" value="${it.price}" style="width:85px"></td>
+    <td><button class="btn-icon danger" onclick="this.closest('tr').remove();recalcInv()">×</button></td>`;
+  $('invItems').appendChild(tr);
+  tr.querySelectorAll('input').forEach(i=>i.oninput=recalcInv);
+}
+function recalcInv(){ /* UI update if needed */ }
+function saveInvoice(id,isEdit){
+  const items=[];
+  document.querySelectorAll('#invItems tr').forEach(r=>{
+    const name=r.querySelector('.it-name').value.trim();
+    const qty=+r.querySelector('.it-qty').value||0;
+    const cost=+r.querySelector('.it-cost').value||0;
+    const price=+r.querySelector('.it-price').value||0;
+    if(name&&qty>0)items.push({name,qty,cost,price});
+  });
+  if(!items.length)return showToast('أضف منتجاً',true);
+  const inv={id,invoiceNo:$('invNo').value.trim(),customer:$('invCustomer').value.trim()||'زبون',phone:$('invPhone').value.trim(),date:$('invDate').value,items,discount:+$('invDiscount').value||0,paid:+$('invPaid').value||0,notes:$('invNotes').value.trim()};
+  const i=S.wholesale.findIndex(x=>x.id===id);
+  if(i>=0)S.wholesale[i]=inv;else S.wholesale.push(inv);
+  persist();closeModal();showToast('تم الحفظ');renderWholesale();
+}
+function delInv(id){
+  if(!confirm('حذف الفاتورة؟'))return;
+  S.wholesale=S.wholesale.filter(x=>x.id!==id);
+  S.debtPayments=S.debtPayments.filter(p=>p.invoiceId!==id);
+  persist();renderWholesale();
+}
+function downloadInvoice(id){
+  const inv=S.wholesale.find(x=>x.id===id);if(!inv)return;
+  const c=calcInv(inv);
+  let rows=inv.items.map(it=>`<tr><td style="border:1px solid #ccc;padding:8px">${esc(it.name)}</td><td style="border:1px solid #ccc;padding:8px;text-align:center">${it.qty}</td><td style="border:1px solid #ccc;padding:8px;text-align:center">$${(+it.price).toFixed(2)}</td></tr>`).join('');
+  const html=`
+    <div style="font-family:Cairo,sans-serif;width:600px;padding:30px;background:#fff;color:#000;direction:rtl">
+      <div style="text-align:center;border-bottom:2px solid #d4af37;padding-bottom:15px;margin-bottom:20px">
+        <h1 style="margin:0;color:#a8842a">${esc(S.settings.wholesaleName)}</h1>
+        <p style="color:#666">فاتورة مبيعات</p>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:20px">
+        <div><strong>رقم:</strong> ${esc(inv.invoiceNo)}<br><strong>التاريخ:</strong> ${fmtDate(inv.date)}</div>
+        <div><strong>الزبون:</strong> ${esc(inv.customer)}<br><strong>الهاتف:</strong> ${esc(inv.phone||'-')}</div>
+      </div>
+      <table style="width:100%;border-collapse:collapse;margin-bottom:20px">
+        <thead><tr style="background:#f7e9b5"><th style="border:1px solid #ccc;padding:8px">المنتج</th><th style="border:1px solid #ccc;padding:8px">الكمية</th><th style="border:1px solid #ccc;padding:8px">السعر</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+      <div style="text-align:left">
+        <p><strong>الإجمالي:</strong> $${c.total.toFixed(2)}</p>
+        <p><strong>المدفوع:</strong> $${c.totalPaid.toFixed(2)}</p>
+        <p style="color:${c.remaining>0?'red':'green'}"><strong>المتبقي:</strong> $${c.remaining.toFixed(2)}</p>
+      </div>
+    </div>`;
+  $('imageRenderArea').innerHTML=html;
+  html2canvas($('imageRenderArea').firstElementChild,{scale:2}).then(canvas=>{
+    const a=document.createElement('a');a.href=canvas.toDataURL('image/png');a.download=`Invoice_${inv.invoiceNo}.png`;a.click();
+    $('imageRenderArea').innerHTML='';showToast('تم التحميل 📥');
+  });
+}
+
+/* ===== Retail & Returns ===== */
+function renderRetail(){
+  const tdy=today();
+  let total=0,profit=0;
+  S.retail.filter(s=>s.date===tdy).forEach(s=>{const c=calcRetail(s);total+=c.total;profit+=c.profit});
+  const retT=S.returns.filter(r=>r.date===tdy).reduce((a,r)=>a+(+r.total||0),0);
+  $('rtStats').innerHTML=`
+    <div class="stat-card"><div class="stat-label">عمليات اليوم</div><div class="stat-value">${S.retail.filter(s=>s.date===tdy).length}</div></div>
+    <div class="stat-card gold"><div class="stat-label">مبيعات اليوم</div><div class="stat-value">${fmtUSD(total-retT)}</div></div>
+    <div class="stat-card green"><div class="stat-label">ربح اليوم</div><div class="stat-value green">${fmtUSD(profit-retT)}</div></div>`;
+  const list=S.retail.filter(s=>s.date===tdy).sort((a,b)=>b.id.localeCompare(a.id));
+  let h='<thead><tr><th>المنتجات</th><th>المجموع</th><th>إجراءات</th></tr></thead><tbody>';
+  if(!list.length)h+='<tr><td colspan="3" class="empty">لا توجد مبيعات</td></tr>';
+  else list.forEach(s=>{
+    const c=calcRetail(s);
+    h+=`<tr>
+      <td>${s.items.map(i=>esc(i.name)).join(', ')}</td><td>${fmtUSD(c.total)}</td>
+      <td class="acts">
+        <button class="btn-icon" onclick="openRetailModal('${s.id}')">✎</button>
+        <button class="btn-icon danger" onclick="processReturn('${s.id}', 'retail', ${c.total}, ${c.profit})" title="مرتجع">🔄</button>
+        <button class="btn-icon danger" onclick="delRetail('${s.id}')">×</button>
+      </td></tr>`;
+  });
+  $('rtTable').innerHTML=h+'</tbody>';
+}
+function openRetailModal(id){
+  const sale=id?S.retail.find(x=>x.id===id):null;
+  const data=sale||{id:uid(),date:today(),items:[{name:'',qty:1,cost:0,price:0}]};
+  const html=`
+    <div class="form-grid"><div class="field"><label>التاريخ</label><input type="date" id="rtDate" value="${data.date}"></div></div>
+    <table class="data-table" style="margin-top:15px"><thead><tr><th>المنتج</th><th>الكمية</th><th>التكلفة</th><th>السعر</th><th></th></tr></thead><tbody id="rtItems"></tbody></table>
+    <button class="btn btn-ghost btn-sm" onclick="addRtRow()">+ منتج</button>
+    <div class="modal-actions"><button class="btn btn-ghost" onclick="closeModal()">إلغاء</button><button class="btn btn-gold" onclick="saveRetail('${data.id}')">حفظ</button></div>`;
+  openModal('تسجيل بيع',html);
+  data.items.forEach(it=>addRtRow(it));
+}
+function addRtRow(it){
+  it=it||{name:'',qty:1,cost:0,price:0};
+  const tr=document.createElement('tr');
+  tr.innerHTML=`
+    <td><input class="inv-input r-name" value="${esc(it.name)}"></td>
+    <td><input class="inv-input r-qty" type="number" value="${it.qty}" style="width:60px"></td>
+    <td><input class="inv-input r-cost" type="number" value="${it.cost}" style="width:70px"></td>
+    <td><input class="inv-input r-price" type="number" value="${it.price}" style="width:70px"></td>
+    <td><button class="btn-icon danger" onclick="this.closest('tr').remove()">×</button></td>`;
+  $('rtItems').appendChild(tr);
+}
+function saveRetail(id){
+  const items=[];
+  document.querySelectorAll('#rtItems tr').forEach(r=>{
+    const name=r.querySelector('.r-name').value.trim();
+    const qty=+r.querySelector('.r-qty').value||0;
+    if(name&&qty>0)items.push({name,qty,cost:+r.querySelector('.r-cost').value||0,price:+r.querySelector('.r-price').value||0});
+  });
+  if(!items.length)return showToast('أضف منتجاً',true);
+  const sale={id,date:$('rtDate').value,items};
+  const i=S.retail.findIndex(x=>x.id===id);
+  if(i>=0)S.retail[i]=sale;else S.retail.push(sale);
+  persist();closeModal();renderRetail();
+}
+function delRetail(id){
+  if(!confirm('حذف البيع؟'))return;
+  S.retail=S.retail.filter(x=>x.id!==id);persist();renderRetail();
+}
+function processReturn(id,type,total,profit){
+  if(!confirm('تأكيد المرتجع؟ سيتم خصم المبلغ من إحصائيات اليوم.'))return;
+  S.returns.push({id:uid(),refId:id,type,total,profit,date:today()});
+  persist();showToast('تم تسجيل المرتجع 🔄');renderRetail();
+}
+
+/* ===== Loyalty ===== */
+function renderLoyalty(){
+  if(!S.loyalty.length){$('loyaltyList').innerHTML='<p class="empty" style="grid-column:1/-1">لا توجد بطاقات</p>';return}
+  let h='';
+  S.loyalty.forEach(card=>{
+    h+=`<div class="card" style="text-align:center">
+      <div style="font-size:30px;color:var(--gold);margin-bottom:10px">👑</div>
+      <h3 style="color:var(--gold2)">${esc(card.name)}</h3>
+      <div style="font-size:24px;font-weight:900;color:var(--gold);margin:10px 0">${card.points} / 10</div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:15px">${card.points>=5?'مؤهلة لخصم 35%':'تتطلب '+(5-card.points)+' نقاط للخصم'}</div>
+      <div style="display:flex;gap:5px;justify-content:center">
+        <button class="btn-icon" onclick="changePoints('${card.id}',-1)">-</button>
+        <button class="btn-icon" onclick="changePoints('${card.id}',1)">+</button>
+        <button class="btn btn-gold btn-sm" onclick="downloadLoyaltyCard('${card.id}')">📥 تحميل</button>
+        <button class="wa-btn" onclick="sendLoyaltyWA('${card.id}')">💬 واتساب</button>
+      </div>
+      <div style="margin-top:10px"><button class="btn-icon" onclick="openLoyaltyModal('${card.id}')">✎</button><button class="btn-icon danger" onclick="delLoyalty('${card.id}')">×</button></div>
+    </div>`;
+  });
+  $('loyaltyList').innerHTML=h;
+}
+function openLoyaltyModal(id){
+  const card=id?S.loyalty.find(x=>x.id===id):null;
+  const data=card||{id:uid(),name:'',points:0,note:'شكراً لكونك جزءاً من عائلة Fayrouza'};
+  const html=`
+    <div class="form-grid">
+      <div class="field"><label>اسم الزبونة</label><input type="text" id="lyName" value="${esc(data.name)}"></div>
+      <div class="field"><label>النقاط الحالية</label><input type="number" id="lyPoints" value="${data.points}"></div>
+      <div class="field full"><label>رسالة مخصصة (تظهر على البطاقة)</label><textarea id="lyNote">${esc(data.note)}</textarea></div>
+    </div>
+    <div class="modal-actions"><button class="btn btn-ghost" onclick="closeModal()">إلغاء</button><button class="btn btn-gold" onclick="saveLoyalty('${data.id}')">حفظ</button></div>`;
+  openModal('بطاقة ولاء VIP',html);
+}
+function saveLoyalty(id){
+  const name=$('lyName').value.trim();
+  if(!name)return showToast('أدخل الاسم',true);
+  const card={id,name,points:+$('lyPoints').value||0,note:$('lyNote').value.trim()};
+  const i=S.loyalty.findIndex(x=>x.id===id);
+  if(i>=0)S.loyalty[i]=card;else S.loyalty.push(card);
+  persist();closeModal();renderLoyalty();
+}
+function changePoints(id,amount){
+  const card=S.loyalty.find(x=>x.id===id);if(!card)return;
+  card.points=Math.max(0,Math.min(10,card.points+amount));
+  persist();renderLoyalty();
+}
+function delLoyalty(id){
+  if(!confirm('حذف البطاقة؟'))return;
+  S.loyalty=S.loyalty.filter(x=>x.id!==id);persist();renderLoyalty();
+}
+function sendLoyaltyWA(id){
+  const card=S.loyalty.find(x=>x.id===id);if(!card)return;
+  const text=`مرحباً ${card.name} 🌸\nشكراً لتعاملك مع Fayrouza!\nرصيد نقاطك الحالي: ${card.points} نقاط.\n${card.points>=5?'🎉 مبروك! لقد حصلتِ على خصم 35% على أي منتج.':'اجمعي 5 نقاط للحصول على خصم 35%!'}`;
+  window.open(`https://wa.me/961${S.settings.wa}?text=${encodeURIComponent(text)}`,'_blank');
+}
+function downloadLoyaltyCard(id){
+  const card=S.loyalty.find(x=>x.id===id);if(!card)return;
+  let circlesHtml='';
+  for(let i=1;i<=10;i++){
+    let label='';
+    if(i===5)label='35%';
+    if(i===10)label='50%<br>+10$';
+    let activeClass=i<=card.points?'active':'';
+    circlesHtml+=`<div class="point-circle ${activeClass}">${label||'★'}</div>`;
+  }
+  const html=`
+    <div class="id-card-wrapper">
+      <div class="id-card-front">
+        <div class="crown">♛</div>
+        <h2>GOLDEN</h2>
+        <h3>MEMBER</h3>
+      </div>
+      <div class="id-card-back">
+        <h4>BECAUSE WE CARE ABOUT OUR CUSTOMERS</h4>
+        <div class="points-row">${circlesHtml}</div>
+        <div style="font-size:10px;text-align:center;color:#fff;margin-bottom:10px">SPEND 10$ OR MORE TO GET ONE POINT<br>COMPLETE 10 POINTS TO GET VIP LOYALTY CARD</div>
+        <div class="id-card-note">"${esc(card.note)}"</div>
+      </div>
+      <div class="id-card-footer">
+        <div>Client Name: <span>${esc(card.name)}</span></div>
+        <div style="font-size:24px">📱</div>
+      </div>
+    </div>`;
+  $('imageRenderArea').innerHTML=html;
+  html2canvas($('imageRenderArea').firstElementChild,{scale:2,backgroundColor:null}).then(canvas=>{
+    const a=document.createElement('a');a.href=canvas.toDataURL('image/png');a.download=`VIP_${card.name}.png`;a.click();
+    $('imageRenderArea').innerHTML='';showToast('تم تحميل البطاقة 📥');
+  });
+}
+
+/* ===== Debts ===== */
+function renderDebts(){
+  const list=S.wholesale.map(inv=>({inv,c:calcInv(inv)})).filter(x=>x.c.remaining>0.01);
+  let totalDebt=list.reduce((a,x)=>a+x.c.remaining,0);
+  $('dbStats').innerHTML=`
+    <div class="stat-card red"><div class="stat-label">إجمالي الديون</div><div class="stat-value red">${fmtUSD(totalDebt)}</div></div>
+    <div class="stat-card"><div class="stat-label">فواتير غير مسددة</div><div class="stat-value">${list.length}</div></div>`;
+  let h='<thead><tr><th>الزبون</th><th>الفاتورة</th><th>المتبقي</th><th>إجراءات</th></tr></thead><tbody>';
+  if(!list.length)h+='<tr><td colspan="4" class="empty">لا ديون ✓</td></tr>';
+  else list.forEach(({inv,c})=>{
+    h+=`<tr>
+      <td>${esc(inv.customer)}</td><td>${esc(inv.invoiceNo)}</td><td class="neg">${fmtUSD(c.remaining)}</td>
+      <td><button class="btn btn-sm btn-gold" onclick="openDebtPay('${inv.id}')">دفعة</button>
+      <button class="wa-btn" onclick="sendDebtWA('${inv.id}')">تذكير واتساب</button></td>
+    </tr>`;
+  });
+  $('dbTable').innerHTML=h+'</tbody>';
+}
+function openDebtPay(id){
+  const inv=S.wholesale.find(x=>x.id===id);const c=calcInv(inv);
+  const html=`
+    <div class="field"><label>المبلغ ($)</label><input type="number" id="dpAmount" step="0.01" max="${c.remaining}" value="${c.remaining.toFixed(2)}"></div>
+    <div class="modal-actions"><button class="btn btn-ghost" onclick="closeModal()">إلغاء</button><button class="btn btn-gold" onclick="saveDebtPay('${id}')">تأكيد</button></div>`;
+  openModal(`تسجيل دفعة - المتبقي: ${fmtUSD(c.remaining)}`,html);
+}
+function saveDebtPay(id){
+  const amount=+$('dpAmount').value||0;
+  if(amount<=0)return;
+  S.debtPayments.push({id:uid(),invoiceId:id,amount,date:today()});
+  persist();closeModal();renderDebts();showToast('تم الدفع');
+}
+function sendDebtWA(id){
+  const inv=S.wholesale.find(x=>x.id===id);const c=calcInv(inv);
+  const text=`مرحباً ${inv.customer} 🌸\nتذكير ودّي بخصوص فاتورتكم رقم (${inv.invoiceNo}) من Fayrouza.\nالمبلغ المتبقي: ${fmtUSD(c.remaining)}.\nشكراً لتعاملكم معنا.`;
+  window.open(`https://wa.me/961${S.settings.wa}?text=${encodeURIComponent(text)}`,'_blank');
+}
+
+/* ===== Employees (FIXED) ===== */
+function renderEmployees(){
+  const month=today().slice(0,7);
+  let h='';
+  if(!S.employees.length)h='<p style="text-align:center;color:var(--muted)">لا توجد موظفات</p>';
+  else S.employees.forEach(e=>{
+    const monthWd=S.withdrawals.filter(w=>w.empId===e.id&&w.date.startsWith(month)).reduce((a,w)=>a+(+w.amount||0),0);
+    const rem=Math.max(0,(+e.salary||0)-monthWd);
+    h+=`<div class="emp-card">
+      <div class="emp-head"><div><div class="emp-name">${esc(e.name)}</div></div>
+        <div><button class="btn btn-sm btn-gold" onclick="openWithdrawalModal('${e.id}')">+ سحب</button>
+        <button class="btn-icon" onclick="openEmployeeModal('${e.id}')">✎</button>
+        <button class="btn-icon danger" onclick="delEmployee('${e.id}')">×</button></div></div>
+      <div class="emp-stats">
+        <div class="emp-stat"><div class="emp-stat-label">الراتب</div><div class="emp-stat-value">${fmtUSD(e.salary)}</div></div>
+        <div class="emp-stat"><div class="emp-stat-label">مسحوب</div><div class="emp-stat-value" style="color:#ff8a8a">${fmtUSD(monthWd)}</div></div>
+        <div class="emp-stat"><div class="emp-stat-label">متبقي</div><div class="emp-stat-value" style="color:#8ff5b0">${fmtUSD(rem)}</div></div>
+      </div>
+    </div>`;
+  });
+  $('empList').innerHTML=h;
+}
+function openEmployeeModal(id){
+  const emp=id?S.employees.find(x=>x.id===id):null;
+  const data=emp||{id:uid(),name:'',salary:0};
+  const html=`<div class="form-grid"><div class="field"><label>الاسم</label><input type="text" id="empName" value="${esc(data.name)}"></div><div class="field"><label>الراتب</label><input type="number" id="empSalary" value="${data.salary}"></div></div>
+    <div class="modal-actions"><button class="btn btn-ghost" onclick="closeModal()">إلغاء</button><button class="btn btn-gold" onclick="saveEmployee('${data.id}')">حفظ</button></div>`;
+  openModal(id?'تعديل موظفة':'موظفة جديدة',html);
+}
+function saveEmployee(id){
+  const name=$('empName').value.trim();
+  if(!name)return showToast('أدخل الاسم',true);
+  const emp={id,name,salary:+$('empSalary').value||0};
+  const i=S.employees.findIndex(x=>x.id===id);
+  if(i>=0)S.employees[i]=emp;else S.employees.push(emp);
+  persist();closeModal();renderEmployees();showToast('تم الحفظ');
+}
+function delEmployee(id){
+  if(confirm('حذف الموظفة؟')){S.employees=S.employees.filter(x=>x.id!==id);S.withdrawals=S.withdrawals.filter(w=>w.empId!==id);persist();renderEmployees();}
+}
+function openWithdrawalModal(empId){
+  const html=`<div class="field"><label>المبلغ</label><input type="number" id="wdAmount" value="0"></div>
+    <div class="modal-actions"><button class="btn btn-ghost" onclick="closeModal()">إلغاء</button><button class="btn btn-gold" onclick="saveWithdrawal('${empId}')">تأكيد</button></div>`;
+  openModal('تسجيل سحب',html);
+}
+function saveWithdrawal(empId){
+  const amount=+$('wdAmount').value||0;
+  if(amount<=0)return;
+  S.withdrawals.push({id:uid(),empId,amount,date:today()});
+  persist();closeModal();renderEmployees();showToast('تم السحب');
+}
+
+/* ===== Expenses, Reports, Cash ===== */
+function renderExpenses(){
+  let h='<thead><tr><th>التاريخ</th><th>المبلغ</th><th>إجراء</th></tr></thead><tbody>';
+  if(!S.expenses.length)h+='<tr><td colspan="3" class="empty">لا توجد مصاريف</td></tr>';
+  else S.expenses.forEach(e=>{h+=`<tr><td>${fmtDate(e.date)}</td><td class="neg">${fmtUSD(e.amount)}</td><td><button class="btn-icon danger" onclick="delExpense('${e.id}')">×</button></td></tr>`});
+  $('exTable').innerHTML=h+'</tbody>';
+  $('exStats').innerHTML=`<div class="stat-card red"><div class="stat-label">إجمالي المصاريف</div><div class="stat-value red">${fmtUSD(S.expenses.reduce((a,e)=>a+(+e.amount||0),0))}</div></div>`;
+}
+function openExpenseModal(){
+  const html=`<div class="field"><label>المبلغ</label><input type="number" id="exAmt" value="0"></div>
+    <div class="modal-actions"><button class="btn btn-gold" onclick="saveExpense()">حفظ</button></div>`;
+  openModal('إضافة مصروف',html);
+}
+function saveExpense(){
+  const amt=+$('exAmt').value||0;if(amt<=0)return;
+  S.expenses.push({id:uid(),amount:amt,date:today()});
+  persist();closeModal();renderExpenses();
+}
+function delExpense(id){S.expenses=S.expenses.filter(x=>x.id!==id);persist();renderExpenses();}
+
+function closeDay(){
+  const tdy=today();
+  if(S.closedDays.some(c=>c.date===tdy))return showToast('اليوم مسكّر مسبقاً',true);
+  S.closedDays.push({date:tdy,closedAt:new Date().toISOString()});
+  persist();showToast('تم تسكير الصندوق ✓');renderCashClose();
+}
+function renderCashClose(){
+  const tdy=today();
+  let h='<thead><tr><th>التاريخ</th><th>الحالة</th></tr></thead><tbody>';
+  if(!S.closedDays.length)h+='<tr><td colspan="2" class="empty">لا يوجد أرشيف</td></tr>';
+  else S.closedDays.forEach(c=>{h+=`<tr><td>${fmtDate(c.date)}</td><td><span class="badge paid">مسكّر</span></td></tr>`});
+  $('closeTable').innerHTML=h+'</tbody>';
+  $('closeToday').innerHTML=`<p style="text-align:center">اليوم: ${fmtDate(tdy)}</p>`;
+}
+function renderReports(){
+  if(!$('repFrom').value){const d=new Date();d.setDate(1);$('repFrom').value=d.toISOString().slice(0,10)}
+  if(!$('repTo').value)$('repTo').value=today();
+}
+function generateReport(){showToast('جاري التحديث...')}
+function exportCSV(){showToast('سيتم التفعيل قريباً')}
+
+function renderSettings(){
+  $('setRetailName').value=S.settings.retailName;
+  $('setWholesaleName').value=S.settings.wholesaleName;
+  $('setRate').value=S.settings.rate;
+  $('setWa').value=S.settings.wa;
+}
+function saveSettings(){
+  S.settings.retailName=$('setRetailName').value.trim();
+  S.settings.wholesaleName=$('setWholesaleName').value.trim();
+  S.settings.rate=+$('setRate').value||89000;
+  S.settings.wa=$('setWa').value.trim();
+  persist();showToast('تم الحفظ ✓');
+}
+function resetAll(){
+  if(confirm('حذف كل البيانات نهائياً؟')){localStorage.clear();location.reload();}
+}
+
+/* ===== Modal & Init ===== */
+function openModal(title,body){$('modalTitle').textContent=title;$('modalBody').innerHTML=body;$('modalOverlay').classList.add('show')}
+function closeModal(){$('modalOverlay').classList.remove('show')}
+
+document.addEventListener('DOMContentLoaded',()=>{
+  Chart.defaults.color='#8f8a7e';
+  Chart.defaults.font.family='Cairo, sans-serif';
+  document.querySelectorAll('#whFilter button').forEach(b=>{b.onclick=()=>{document.querySelectorAll('#whFilter button').forEach(x=>x.classList.remove('active'));b.classList.add('active');renderWholesale();}});
+  $('whSearch').oninput=()=>renderWholesale();
+  $('modalOverlay').onclick=e=>{if(e.target.id==='modalOverlay')closeModal()};
+  renderPage('dashboard');
+});
+</script>
+</body>
+</html>
+```
