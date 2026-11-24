@@ -787,7 +787,13 @@ function saveInvoice(id,isEdit){
   if(oldDate && oldDate !== inv.date) autoCloseDay(oldDate);
   autoCloseDay(inv.date);
   
-  persist();closeModal();showToast('تم الحفظ ☁️');renderWholesale();
+  persist();closeModal();showToast('تم الحفظ ☁️');
+  
+  const activePage = document.querySelector('.nav-item.active')?.dataset.page;
+  if(activePage === 'reports') generateReport();
+  else if(activePage === 'wholesale') renderWholesale();
+  else if(activePage === 'debts') renderDebts();
+  else if(activePage === 'dashboard') renderDashboard();
 }
 function delInv(id){
   if(!confirm('حذف الفاتورة؟'))return;
@@ -890,7 +896,12 @@ function saveRetail(id){
   if(oldDate && oldDate !== sale.date) autoCloseDay(oldDate);
   autoCloseDay(sale.date);
   
-  persist();closeModal();renderRetail();showToast('تم الحفظ ☁️');
+  persist();closeModal();showToast('تم الحفظ ☁️');
+  
+  const activePage = document.querySelector('.nav-item.active')?.dataset.page;
+  if(activePage === 'reports') generateReport();
+  else if(activePage === 'retail') renderRetail();
+  else if(activePage === 'dashboard') renderDashboard();
 }
 function delRetail(id){
   if(!confirm('حذف البيع؟'))return;
@@ -1542,8 +1553,8 @@ function generateReport(){
       <div class="stat-card red"><div class="stat-label">الديون الجديدة</div><div class="stat-value red">${fmtUSD(newDebts)}</div></div>
       <div class="stat-card"><div class="stat-label">تحصيل ديون بالفترة</div><div class="stat-value">${fmtUSD(debtPayTotal)}</div></div>`;
 
-    let tableH = '<thead><tr><th>رقم الفاتورة</th><th>التاريخ</th><th>الزبون</th><th>الإجمالي</th><th>المدفوع</th><th>المتبقي</th><th>الربح</th></tr></thead><tbody>';
-    if(!invs.length) tableH += '<tr><td colspan="7" class="empty">لا فواتير في هذه الفترة</td></tr>';
+    let tableH = '<thead><tr><th>رقم الفاتورة</th><th>التاريخ</th><th>الزبون</th><th>الإجمالي</th><th>المدفوع</th><th>المتبقي</th><th>الربح</th><th>إجراءات</th></tr></thead><tbody>';
+    if(!invs.length) tableH += '<tr><td colspan="8" class="empty">لا فواتير في هذه الفترة</td></tr>';
     else invs.sort((a,b)=>b.date.localeCompare(a.date)).forEach(inv => {
       const c = calcInv(inv);
       tableH += `<tr>
@@ -1553,7 +1564,8 @@ function generateReport(){
         <td>${fmtUSD(c.total)}</td>
         <td class="pos">${fmtUSD(c.totalPaid)}</td>
         <td class="${c.remaining>0.01?'neg':'pos'}">${fmtUSD(c.remaining)}</td>
-        <td class="pos">${fmtUSD(c.profit)}</td>
+        <td class="${c.profit<0?'neg':'pos'}">${fmtUSD(c.profit)}</td>
+        <td><button class="btn-icon" onclick="openInvoiceModal('${inv.id}')" title="تعديل">✎</button></td>
       </tr>`;
     });
     $('repTable').innerHTML = tableH + '</tbody>';
@@ -1584,15 +1596,17 @@ function generateReport(){
       <div class="stat-card blue"><div class="stat-label">صافي المبيعات</div><div class="stat-value blue">${fmtUSD(netSales)}</div></div>
       <div class="stat-card green"><div class="stat-label">الأرباح</div><div class="stat-value green">${fmtUSD(profitR)}</div></div>`;
 
-    let tableH = '<thead><tr><th>التاريخ</th><th>المنتجات</th><th>الإجمالي</th><th>الربح</th></tr></thead><tbody>';
-    if(!sales.length) tableH += '<tr><td colspan="4" class="empty">لا مبيعات في هذه الفترة</td></tr>';
+    let tableH = '<thead><tr><th>التاريخ</th><th>المنتجات</th><th>الإجمالي</th><th>الربح</th><th>إجراءات</th></tr></thead><tbody>';
+    if(!sales.length) tableH += '<tr><td colspan="5" class="empty">لا مبيعات في هذه الفترة</td></tr>';
     else sales.sort((a,b)=>b.date.localeCompare(a.date)).forEach(s => {
       const c = calcRetail(s);
+      const productsList = s.items.map(i=>esc(i.name)).join(', ');
       tableH += `<tr>
         <td>${fmtDate(s.date)}</td>
-        <td>${s.items.map(i=>esc(i.name)).join(', ')}</td>
+        <td style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 150px;" title="${productsList}">${productsList}</td>
         <td>${fmtUSD(c.total)}</td>
-        <td class="pos">${fmtUSD(c.profit)}</td>
+        <td class="${c.profit<0?'neg':'pos'}">${fmtUSD(c.profit)}</td>
+        <td><button class="btn-icon" onclick="openRetailModal('${s.id}')" title="تعديل">✎</button></td>
       </tr>`;
     });
     $('repTable').innerHTML = tableH + '</tbody>';
