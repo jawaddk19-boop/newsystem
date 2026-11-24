@@ -7,6 +7,11 @@
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+<!-- Firebase Compat SDK (ضروري لعمل الكود بدون Module) -->
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
 <style>
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
 :root{
@@ -352,7 +357,25 @@ body.light-mode .inv-input{background:#fff;color:#000;border-color:#ccc}
 <div id="printArea" style="display:none;"></div>
 
 <script>
-/* ===== Storage ===== */
+/* =========================================
+   FIREBASE CONFIGURATION & CLOUD SYNC
+   ========================================= */
+const firebaseConfig = {
+  apiKey: "AIzaSyCKnaw12_GxiYipA_2n4_gdYcE8WYz7zvg",
+  authDomain: "alherz-4c316.firebaseapp.com",
+  projectId: "alherz-4c316",
+  storageBucket: "alherz-4c316.firebasestorage.app",
+  messagingSenderId: "935457887254",
+  appId: "1:935457887254:web:3c38b068fb649535cb5137"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+const docRef = db.collection('stores').doc('fayrouza_main');
+
+/* =========================================
+   DATA & LOCAL STORAGE
+   ========================================= */
 const PFX='fayrouza_';
 const store={get(k,d){try{const v=localStorage.getItem(PFX+k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem(PFX+k,JSON.stringify(v))}catch(e){}}};
 let S={
@@ -368,7 +391,34 @@ let S={
   debtPayments:store.get('debtPayments',[]),
   returns:store.get('returns',[])
 };
-function persist(){Object.keys(S).forEach(k=>store.set(k,S[k]))}
+
+// دالة الحفظ: تحفظ في المتصفح وفي السحابة
+function persist(){
+  Object.keys(S).forEach(k=>store.set(k,S[k]));
+  docRef.set(S).catch(err => console.error("Cloud Save Error: ", err));
+}
+
+// المزامنة الفورية (Real-time)
+docRef.onSnapshot((doc) => {
+  if (doc.exists) {
+    const cloudData = doc.data();
+    let updated = false;
+    Object.keys(S).forEach(k => {
+      if (cloudData[k] !== undefined && JSON.stringify(cloudData[k]) !== JSON.stringify(S[k])) {
+        S[k] = cloudData[k];
+        updated = true;
+      }
+    });
+    if (updated) {
+      Object.keys(S).forEach(k => store.set(k, S[k]));
+      showToast('تم المزامنة مع السحابة ☁️');
+      const activePage = document.querySelector('.nav-item.active')?.dataset.page || 'dashboard';
+      renderPage(activePage);
+    }
+  } else {
+    docRef.set(S);
+  }
+});
 
 /* ===== Utils ===== */
 const $=id=>document.getElementById(id);
@@ -595,7 +645,7 @@ function saveInvoice(id,isEdit){
   const inv={id,invoiceNo:$('invNo').value.trim(),customer:$('invCustomer').value.trim()||'زبون',phone:$('invPhone').value.trim(),date:$('invDate').value,items,discount:+$('invDiscount').value||0,paid:+$('invPaid').value||0,notes:$('invNotes').value.trim()};
   const i=S.wholesale.findIndex(x=>x.id===id);
   if(i>=0)S.wholesale[i]=inv;else S.wholesale.push(inv);
-  persist();closeModal();showToast('تم الحفظ');renderWholesale();
+  persist();closeModal();showToast('تم الحفظ ☁️');renderWholesale();
 }
 function delInv(id){
   if(!confirm('حذف الفاتورة؟'))return;
@@ -1074,4 +1124,3 @@ document.addEventListener('DOMContentLoaded',()=>{
 </script>
 </body>
 </html>
-```
