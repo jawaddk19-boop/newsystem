@@ -1032,13 +1032,18 @@ function renderDebts(){
   });
   $('dbTable').innerHTML=h+'</tbody>';
 }
+
 function openCustomerDebts(idx){
   const g=_debtGroupsCache[idx];
   if(!g)return;
 
+  // زر الدفعة الإجمالية أسفل المبلغ الكلي
   let h=`<div style="margin-bottom:15px;text-align:center;padding:14px;border-radius:12px;background:rgba(255,90,90,0.08);border:1px solid rgba(255,90,90,0.25)">
     <div style="font-size:11px;color:var(--muted);margin-bottom:4px">إجمالي ما على الزبون</div>
-    <div style="font-size:26px;font-weight:900;color:#ff8a8a">${fmtUSD(g.total)}</div>
+    <div style="font-size:26px;font-weight:900;color:#ff8a8a;margin-bottom:12px">${fmtUSD(g.total)}</div>
+    <button class="btn btn-gold" style="width:100%;padding:12px;font-size:14px" onclick="closeModal(); openTotalDebtPay(${idx})">
+      + تسجيل دفعة إجمالية (توزيع تلقائي)
+    </button>
   </div>`;
 
   g.invoices.forEach(({inv,c})=>{
@@ -1060,12 +1065,71 @@ function openCustomerDebts(idx){
           <span style="color:#8ff5b0">${fmtUSD(p.amount)}</span>
         </div>`).join('')}
       </div>`:`<div style="font-size:11px;color:var(--muted);margin-bottom:10px">لا دفعات مسجلة بعد</div>`}
-      <button class="btn btn-sm btn-gold" onclick="closeModal();openDebtPay('${inv.id}')">+ تسجيل دفعة</button>
+      <button class="btn btn-sm btn-ghost" onclick="closeModal();openDebtPay('${inv.id}')">+ تسجيل دفعة لهذه الفاتورة فقط</button>
     </div>`;
   });
 
   openModal(`ديون: ${esc(g.name)}`, h);
 }
+
+function openTotalDebtPay(idx){
+  const g=_debtGroupsCache[idx];
+  if(!g)return;
+  
+  const html=`
+    <div style="padding:12px;border-radius:10px;background:rgba(0,0,0,0.3);margin-bottom:16px;text-align:center">
+      <div style="font-size:12px;color:var(--muted);margin-bottom:4px">إجمالي ديون الزبون: ${esc(g.name)}</div>
+      <div style="font-size:24px;font-weight:900;color:#ff8a8a">${fmtUSD(g.total)}</div>
+      <div style="font-size:10px;color:var(--gold2);margin-top:8px">سيتم توزيع المبلغ تلقائياً على الفواتير من الأقدم إلى الأحدث</div>
+    </div>
+    <div class="form-grid">
+      <div class="field"><label>المبلغ المدفوع ($)</label><input type="number" id="dtAmount" step="0.01" max="${g.total}" value="${g.total.toFixed(2)}"></div>
+      <div class="field"><label>التاريخ</label><input type="date" id="dtDate" value="${today()}"></div>
+    </div>
+    <div class="modal-actions"><button class="btn btn-ghost" onclick="closeModal()">إلغاء</button><button class="btn btn-gold" onclick="saveTotalDebtPay(${idx})">تأكيد الدفع</button></div>`;
+  openModal('دفعة إجمالية', html);
+}
+
+function saveTotalDebtPay(idx){
+  const g=_debtGroupsCache[idx];
+  if(!g)return;
+  
+  let amountToPay=+$('dtAmount').value||0;
+  const date=$('dtDate').value||today();
+  
+  if(amountToPay<=0)return showToast('أدخل مبلغاً صحيحاً',true);
+  if(amountToPay > g.total + 0.01) return showToast('المبلغ أكبر من إجمالي الدين!',true);
+
+  // ترتيب الفواتير من الأقدم للأحدث (حسب التاريخ ثم الـ ID)
+  const sortedInvoices = g.invoices.slice().sort((a, b) => {
+    const dateComp = a.inv.date.localeCompare(b.inv.date);
+    return dateComp !== 0 ? dateComp : a.inv.id.localeCompare(b.inv.id);
+  });
+
+  // التوزيع
+  for(let item of sortedInvoices){
+    if(amountToPay <= 0) break;
+    
+    const invRemaining = item.c.remaining;
+    const payForThis = Math.min(amountToPay, invRemaining);
+
+    if(payForThis > 0){
+      S.debtPayments.push({
+        id: uid(),
+        invoiceId: item.inv.id,
+        amount: payForThis,
+        date: date
+      });
+      amountToPay -= payForThis;
+    }
+  }
+
+  persist();
+  closeModal();
+  renderDebts();
+  showToast('تم تسجيل وتوزيع الدفعة بنجاح ☁️');
+}
+
 function openDebtPay(id){
   const inv=S.wholesale.find(x=>x.id===id);
   if(!inv)return;
@@ -1085,6 +1149,7 @@ function openDebtPay(id){
     <div class="modal-actions"><button class="btn btn-ghost" onclick="closeModal()">إلغاء</button><button class="btn btn-gold" onclick="saveDebtPay('${id}')">تأكيد</button></div>`;
   openModal('تسجيل دفعة',html);
 }
+
 function saveDebtPay(id){
   const amount=+$('dpAmount').value||0;
   const date=$('dpDate').value||today();
@@ -1092,6 +1157,7 @@ function saveDebtPay(id){
   S.debtPayments.push({id:uid(),invoiceId:id,amount,date});
   persist();closeModal();renderDebts();showToast('تم تسجيل الدفعة ☁️');
 }
+
 function sendCustomerDebtWA(idx){
   const g=_debtGroupsCache[idx];
   if(!g)return;
@@ -1446,3 +1512,4 @@ document.addEventListener('DOMContentLoaded',()=>{
 </script>
 </body>
 </html>
+```
