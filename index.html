@@ -56,11 +56,13 @@ body.light-mode .stat-card{background:#fff}
 .stat-card.gold{border-color:var(--bdr);background:linear-gradient(160deg,rgba(212,175,55,0.08),rgba(212,175,55,0.01))}
 .stat-card.green{border-color:rgba(46,204,113,0.25)}
 .stat-card.red{border-color:rgba(255,90,90,0.25)}
+.stat-card.blue{border-color:rgba(90,156,255,0.25)}
 .stat-label{font-size:11px;color:var(--muted);letter-spacing:.5px;margin-bottom:8px;font-weight:600}
 .stat-value{font-size:24px;font-weight:900;background:linear-gradient(135deg,#fff,var(--gold2));-webkit-background-clip:text;background-clip:text;color:transparent;word-break:break-word}
 body.light-mode .stat-value{background:linear-gradient(135deg,#333,var(--gold3));-webkit-background-clip:text;background-clip:text}
 .stat-value.green{background:linear-gradient(135deg,#c8ffdb,#2ecc71);-webkit-background-clip:text;background-clip:text;color:transparent}
 .stat-value.red{background:linear-gradient(135deg,#ffb8b8,#ff5a5a);-webkit-background-clip:text;background-clip:text;color:transparent}
+.stat-value.blue{background:linear-gradient(135deg,#b8d4ff,#5a9cff);-webkit-background-clip:text;background-clip:text;color:transparent}
 .stat-sub{font-size:10px;color:var(--muted);margin-top:6px}
 .card{padding:20px;border-radius:16px;background:linear-gradient(160deg,rgba(255,255,255,0.025),rgba(255,255,255,0.008));border:1px solid var(--bsoft);margin-bottom:20px}
 body.light-mode .card{background:#fff}
@@ -499,6 +501,23 @@ function computeDaySummary(d){
     totalSales:salesW+salesR-returns};
 }
 
+/* ===== Auto Close Day (Backdating) ===== */
+function autoCloseDay(dateStr){
+  if(!dateStr || dateStr === today()) return; // لا تغلق إذا كان تاريخ اليوم
+  
+  const summary = computeDaySummary(dateStr);
+  const existingIndex = S.closedDays.findIndex(c => c.date === dateStr);
+  
+  if(existingIndex >= 0){
+    S.closedDays[existingIndex].summary = summary;
+    S.closedDays[existingIndex].closedAt = new Date().toISOString();
+  } else {
+    S.closedDays.push({date: dateStr, closedAt: new Date().toISOString(), summary});
+  }
+  persist();
+  showToast(`تم تسكير صندوق يوم ${dateStr} تلقائياً`, false);
+}
+
 /* ===== Navigation ===== */
 document.querySelectorAll('.nav-item').forEach(btn=>{
   btn.onclick=()=>{
@@ -562,11 +581,15 @@ function renderDashboard(){
 function renderWholesale(){
   let total=0,profit=0,debts=0;
   S.wholesale.forEach(inv=>{const c=calcInv(inv);total+=c.total;profit+=c.profit;debts+=c.remaining});
+  const collections = total - debts;
+  
   $('whStats').innerHTML=`
     <div class="stat-card"><div class="stat-label">الفواتير</div><div class="stat-value">${S.wholesale.length}</div></div>
     <div class="stat-card gold"><div class="stat-label">المبيعات</div><div class="stat-value">${fmtUSD(total)}</div></div>
+    <div class="stat-card blue"><div class="stat-label">المقبوضات</div><div class="stat-value blue">${fmtUSD(collections)}</div></div>
     <div class="stat-card green"><div class="stat-label">الأرباح</div><div class="stat-value green">${fmtUSD(profit)}</div></div>
     <div class="stat-card red"><div class="stat-label">الديون</div><div class="stat-value red">${fmtUSD(debts)}</div></div>`;
+    
   const filter=document.querySelector('#whFilter button.active')?.dataset.f||'all';
   const search=($('whSearch').value||'').toLowerCase().trim();
   let filtered=S.wholesale.filter(inv=>{
@@ -640,25 +663,66 @@ function addQuickProduct(pid, type){
     if($('rtQuickAdd')) $('rtQuickAdd').value='';
   }
 }
+
+/* ===== Custom Function for Parsing Cost Shortcode ===== */
+function parseCostInput(inputElement) {
+  let val = inputElement.value.trim();
+  if (!val) {
+    inputElement.value = '0.00';
+    recalcInv();
+    return;
+  }
+  
+  let finalCost = 0;
+  
+  // 1. يبدأ بحرف A (مثال: A10 -> 10)
+  if (/^[aA]\d+(\.\d+)?$/.test(val)) {
+    finalCost = parseFloat(val.substring(1)) || 0;
+  } 
+  // 2. يبدأ بـ 1 ويتكون من 4 أرقام (مثال: 1250 -> 2.50)
+  else if (/^1\d{3}$/.test(val)) {
+    const dollars = val.substring(1, val.length - 2);
+    const cents = val.substring(val.length - 2);
+    finalCost = parseFloat(dollars + '.' + cents) || 0;
+  } 
+  // 3. رقم عادي
+  else {
+    finalCost = parseFloat(val) || 0;
+  }
+  
+  inputElement.value = finalCost.toFixed(2);
+  recalcInv();
+}
+
 function addInvRow(it){
-  it=it||{name:'',qty:1,cost:0,price:0};
+  it=it||{name:'',qty:1,cost:'',price:''};
   const tr=document.createElement('tr');
+  // تم تغيير type الخانة cost إلى text ليقبل حرف A
   tr.innerHTML=`
     <td><input class="inv-input it-name" value="${esc(it.name)}"></td>
     <td><input class="inv-input it-qty" type="number" value="${it.qty}"></td>
-    <td><input class="inv-input it-cost" type="number" step="0.01" value="${it.cost}"></td>
+    <td><input class="inv-input it-cost" type="text" inputmode="decimal" value="${it.cost}"></td>
     <td><input class="inv-input it-price" type="number" step="0.01" value="${it.price}"></td>
     <td><button class="btn-icon danger" onclick="this.closest('tr').remove();recalcInv()">×</button></td>`;
   $('invItems').appendChild(tr);
-  tr.querySelectorAll('input').forEach(i=>i.oninput=recalcInv);
+  
+  tr.querySelector('.it-name').oninput = recalcInv;
+  tr.querySelector('.it-qty').oninput = recalcInv;
+  tr.querySelector('.it-price').oninput = recalcInv;
+  
+  const costInput = tr.querySelector('.it-cost');
+  costInput.oninput = recalcInv;
+  costInput.onblur = function() { parseCostInput(this); }; // تفعيل التحويل عند الخروج
+  
   recalcInv();
 }
+
 function recalcInv(){
   let sub=0,cost=0;
   document.querySelectorAll('#invItems tr').forEach(r=>{
     const qty=+r.querySelector('.it-qty')?.value||0;
     const price=+r.querySelector('.it-price')?.value||0;
-    const cst=+r.querySelector('.it-cost')?.value||0;
+    const cst=parseFloat(r.querySelector('.it-cost')?.value)||0; // parseFloat لتفادي NaN
     sub+=qty*price;cost+=qty*cst;
   });
   const discount=+($('invDiscount')?.value||0);
@@ -674,7 +738,7 @@ function saveInvoice(id,isEdit){
   document.querySelectorAll('#invItems tr').forEach(r=>{
     const name=r.querySelector('.it-name').value.trim();
     const qty=+r.querySelector('.it-qty').value||0;
-    const cost=+r.querySelector('.it-cost').value||0;
+    const cost=parseFloat(r.querySelector('.it-cost').value)||0;
     const price=+r.querySelector('.it-price').value||0;
     if(name&&qty>0)items.push({name,qty,cost,price});
   });
@@ -682,12 +746,20 @@ function saveInvoice(id,isEdit){
   const inv={id,invoiceNo:$('invNo').value.trim(),customer:$('invCustomer').value.trim()||'زبون',phone:$('invPhone').value.trim(),date:$('invDate').value,items,discount:+$('invDiscount').value||0,paid:+$('invPaid').value||0,notes:$('invNotes').value.trim()};
   const i=S.wholesale.findIndex(x=>x.id===id);
   if(i>=0)S.wholesale[i]=inv;else S.wholesale.push(inv);
+  
+  // تسكير اليوم تلقائياً إذا كان التاريخ قديماً
+  autoCloseDay(inv.date);
+  
   persist();closeModal();showToast('تم الحفظ ☁️');renderWholesale();
 }
 function delInv(id){
   if(!confirm('حذف الفاتورة؟'))return;
+  const inv = S.wholesale.find(x=>x.id===id);
   S.wholesale=S.wholesale.filter(x=>x.id!==id);
   S.debtPayments=S.debtPayments.filter(p=>p.invoiceId!==id);
+  
+  if(inv) autoCloseDay(inv.date); // تحديث الصندوق إذا تم حذف فاتورة قديمة
+  
   persist();renderWholesale();
 }
 
@@ -773,11 +845,20 @@ function saveRetail(id){
   const sale={id,date:$('rtDate').value,items};
   const i=S.retail.findIndex(x=>x.id===id);
   if(i>=0)S.retail[i]=sale;else S.retail.push(sale);
+  
+  // تسكير اليوم تلقائياً إذا كان التاريخ قديماً
+  autoCloseDay(sale.date);
+  
   persist();closeModal();renderRetail();
 }
 function delRetail(id){
   if(!confirm('حذف البيع؟'))return;
-  S.retail=S.retail.filter(x=>x.id!==id);persist();renderRetail();
+  const sale = S.retail.find(x=>x.id===id);
+  S.retail=S.retail.filter(x=>x.id!==id);
+  
+  if(sale) autoCloseDay(sale.date); // تحديث الصندوق إذا تم حذف بيع قديم
+  
+  persist();renderRetail();
 }
 
 /* ===== Returns ===== */
@@ -794,12 +875,21 @@ function openReturnModal(){
 function saveReturn(){
   const amt=+$('retAmount').value||0;
   if(amt<=0)return showToast('أدخل مبلغاً',true);
-  S.returns.push({id:uid(),date:$('retDate').value,total:amt,reason:$('retReason').value.trim()});
+  const date = $('retDate').value || today();
+  S.returns.push({id:uid(),date:date,total:amt,reason:$('retReason').value.trim()});
+  
+  autoCloseDay(date);
+  
   persist();closeModal();renderRetail();showToast('تم تسجيل المرتجع ☁️');
 }
 function delReturn(id){
   if(!confirm('حذف المرتجع؟'))return;
-  S.returns=S.returns.filter(x=>x.id!==id);persist();renderRetail();
+  const ret = S.returns.find(x=>x.id===id);
+  S.returns=S.returns.filter(x=>x.id!==id);
+  
+  if(ret) autoCloseDay(ret.date);
+  
+  persist();renderRetail();
 }
 
 /* ===== Printing (80mm Thermal) ===== */
@@ -1123,7 +1213,8 @@ function saveTotalDebtPay(idx){
       amountToPay -= payForThis;
     }
   }
-
+  
+  autoCloseDay(date);
   persist();
   closeModal();
   renderDebts();
@@ -1155,6 +1246,8 @@ function saveDebtPay(id){
   const date=$('dpDate').value||today();
   if(amount<=0)return showToast('أدخل مبلغاً',true);
   S.debtPayments.push({id:uid(),invoiceId:id,amount,date});
+  
+  autoCloseDay(date);
   persist();closeModal();renderDebts();showToast('تم تسجيل الدفعة ☁️');
 }
 
@@ -1253,7 +1346,10 @@ function openWithdrawalModal(empId){
 function saveWithdrawal(empId){
   const amount=+$('wdAmount').value||0;
   if(amount<=0)return;
-  S.withdrawals.push({id:uid(),empId,amount,date:$('wdDate').value||today()});
+  const date = $('wdDate').value||today();
+  S.withdrawals.push({id:uid(),empId,amount,date});
+  
+  autoCloseDay(date);
   persist();closeModal();renderEmployees();showToast('تم السحب ☁️');
 }
 function openEmployeeNoteModal(empId){
@@ -1301,10 +1397,18 @@ function openExpenseModal(){
 }
 function saveExpense(){
   const amt=+$('exAmt').value||0;if(amt<=0)return;
-  S.expenses.push({id:uid(),amount:amt,date:$('exDate').value||today()});
+  const date = $('exDate').value||today();
+  S.expenses.push({id:uid(),amount:amt,date});
+  
+  autoCloseDay(date);
   persist();closeModal();renderExpenses();
 }
-function delExpense(id){S.expenses=S.expenses.filter(x=>x.id!==id);persist();renderExpenses();}
+function delExpense(id){
+  const ex = S.expenses.find(x=>x.id===id);
+  S.expenses=S.expenses.filter(x=>x.id!==id);
+  if(ex) autoCloseDay(ex.date);
+  persist();renderExpenses();
+}
 
 /* ===== Cash Close ===== */
 function closeDay(){
