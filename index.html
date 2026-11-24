@@ -116,7 +116,7 @@ body.light-mode .modal-head h3{color:var(--gold3)}
 .toast.error{border-color:#ff5a5a;color:#ff8a8a}
 .toast.show{transform:translateX(-50%) translateY(0)}
 .filter-bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;align-items:center}
-.filter-tabs{display:flex;gap:5px;flex-wrap:wrap}
+.filter-tabs{display:flex;gap:5px;flex-wrap:wrap; margin-bottom:15px;}
 .filter-tabs button{padding:7px 14px;border-radius:8px;background:transparent;border:1px solid var(--bsoft);color:var(--muted);font-family:inherit;font-size:11.5px;font-weight:600;cursor:pointer}
 .filter-tabs button.active{background:rgba(212,175,55,0.12);color:var(--gold2);border-color:var(--bdr)}
 .filter-bar input{flex:1;min-width:150px;padding:9px 14px;border-radius:8px;background:rgba(0,0,0,0.4);border:1px solid rgba(255,255,255,0.08);color:var(--txt);font-family:inherit;font-size:12px}
@@ -316,17 +316,32 @@ body.light-mode .inv-input{background:#fff;color:#000;border-color:#ccc}
 </section>
 
 <section class="page" id="page-reports">
-  <div class="page-head"><div><h1>التقارير</h1><p class="muted">تحليل مالي</p></div><button class="btn btn-ghost" onclick="exportCSV()">تصدير CSV</button></div>
+  <div class="page-head">
+    <div><h1>التقارير</h1><p class="muted">تحليل مالي مفصل</p></div>
+    <button class="btn btn-gold" onclick="exportReportImage()">📸 تصدير كصورة</button>
+  </div>
   <div class="card">
+    <div class="filter-tabs" id="repFilter">
+      <button class="active" data-r="wholesale">تقرير الجملة</button>
+      <button data-r="retail">تقرير المفرق</button>
+    </div>
     <div class="form-grid">
       <div class="field"><label>من</label><input type="date" id="repFrom"></div>
       <div class="field"><label>إلى</label><input type="date" id="repTo"></div>
-      <div class="field"><label>&nbsp;</label><button class="btn btn-gold" onclick="generateReport()">توليد</button></div>
+      <div class="field"><label>&nbsp;</label><button class="btn btn-ghost" onclick="generateReport()">تحديث</button></div>
     </div>
   </div>
-  <div class="stats-grid" id="repStats"></div>
-  <div class="card chart-card"><div class="chart-wrap"><canvas id="repChart"></canvas></div></div>
-  <div class="card"><div class="table-wrap"><table class="data-table" id="repTable"></table></div></div>
+  
+  <!-- حاوية التقرير لتصديرها كصورة -->
+  <div id="reportCaptureArea" style="background:var(--bg); padding:10px; border-radius:12px;">
+    <div style="text-align:center; margin-bottom:15px; display:none;" id="reportPrintHeader">
+      <h2 id="repPrintTitle" style="color:var(--gold2); font-size:20px;"></h2>
+      <p id="repPrintDates" style="color:var(--muted); font-size:12px;"></p>
+    </div>
+    <div class="stats-grid" id="repStats"></div>
+    <div class="card chart-card"><div class="chart-wrap"><canvas id="repChart"></canvas></div></div>
+    <div class="card"><div class="table-wrap"><table class="data-table" id="repTable"></table></div></div>
+  </div>
 </section>
 
 <section class="page" id="page-settings">
@@ -1451,95 +1466,136 @@ function renderCashClose(){
 }
 
 /* ===== Reports ===== */
+let currentReportType = 'wholesale';
 function renderReports(){
   if(!$('repFrom').value){const d=new Date();d.setDate(1);$('repFrom').value=d.toISOString().slice(0,10)}
   if(!$('repTo').value)$('repTo').value=today();
+  generateReport();
 }
+
 function generateReport(){
   const from=$('repFrom').value;
   const to=$('repTo').value;
   if(!from||!to)return showToast('اختر التاريخ',true);
   if(from>to)return showToast('تاريخ البداية بعد النهاية',true);
 
-  let totalW=0,profitW=0,totalR=0,profitR=0,expTotal=0,retTotal=0,debtPayTotal=0,newDebts=0;
-  S.wholesale.filter(i=>i.date>=from&&i.date<=to).forEach(inv=>{const c=calcInv(inv);totalW+=c.total;profitW+=c.profit;newDebts+=c.remaining;});
-  S.retail.filter(s=>s.date>=from&&s.date<=to).forEach(s=>{const c=calcRetail(s);totalR+=c.total;profitR+=c.profit;});
-  S.expenses.filter(e=>e.date>=from&&e.date<=to).forEach(e=>expTotal+=(+e.amount||0));
-  S.returns.filter(r=>r.date>=from&&r.date<=to).forEach(r=>retTotal+=(+r.total||0));
-  S.debtPayments.filter(p=>p.date>=from&&p.date<=to).forEach(p=>debtPayTotal+=(+p.amount||0));
+  if(currentReportType === 'wholesale') {
+    let totalW=0,profitW=0,newDebts=0;
+    const invs = S.wholesale.filter(i=>i.date>=from && i.date<=to);
+    invs.forEach(inv=>{const c=calcInv(inv);totalW+=c.total;profitW+=c.profit;newDebts+=c.remaining;});
+    const collections = totalW - newDebts;
+    const debtPayTotal = S.debtPayments.filter(p=>p.date>=from && p.date<=to).reduce((a,p)=>a+(+p.amount||0),0);
 
-  const netProfit=profitW+profitR-expTotal-retTotal;
-  const cashIn=totalW+totalR+debtPayTotal-expTotal-retTotal;
+    $('repStats').innerHTML=`
+      <div class="stat-card gold"><div class="stat-label">المبيعات</div><div class="stat-value">${fmtUSD(totalW)}</div></div>
+      <div class="stat-card blue"><div class="stat-label">المقبوضات</div><div class="stat-value blue">${fmtUSD(collections)}</div></div>
+      <div class="stat-card green"><div class="stat-label">الأرباح</div><div class="stat-value green">${fmtUSD(profitW)}</div></div>
+      <div class="stat-card red"><div class="stat-label">الديون الجديدة</div><div class="stat-value red">${fmtUSD(newDebts)}</div></div>
+      <div class="stat-card"><div class="stat-label">تحصيل ديون بالفترة</div><div class="stat-value">${fmtUSD(debtPayTotal)}</div></div>`;
 
-  $('repStats').innerHTML=`
-    <div class="stat-card gold"><div class="stat-label">إجمالي المبيعات</div><div class="stat-value">${fmtUSD(totalW+totalR-retTotal)}</div></div>
-    <div class="stat-card green"><div class="stat-label">صافي الربح</div><div class="stat-value green">${fmtUSD(netProfit)}</div></div>
-    <div class="stat-card"><div class="stat-label">صافي الكاش</div><div class="stat-value">${fmtUSD(cashIn)}</div></div>
-    <div class="stat-card red"><div class="stat-label">ديون جديدة</div><div class="stat-value red">${fmtUSD(newDebts)}</div></div>
-    <div class="stat-card"><div class="stat-label">تحصيل ديون</div><div class="stat-value">${fmtUSD(debtPayTotal)}</div></div>
-    <div class="stat-card red"><div class="stat-label">مصاريف</div><div class="stat-value red">${fmtUSD(expTotal)}</div></div>`;
+    let tableH = '<thead><tr><th>رقم الفاتورة</th><th>التاريخ</th><th>الزبون</th><th>الإجمالي</th><th>المدفوع</th><th>المتبقي</th><th>الربح</th></tr></thead><tbody>';
+    if(!invs.length) tableH += '<tr><td colspan="7" class="empty">لا فواتير في هذه الفترة</td></tr>';
+    else invs.sort((a,b)=>b.date.localeCompare(a.date)).forEach(inv => {
+      const c = calcInv(inv);
+      tableH += `<tr>
+        <td>${esc(inv.invoiceNo)}</td>
+        <td>${fmtDate(inv.date)}</td>
+        <td>${esc(inv.customer)}</td>
+        <td>${fmtUSD(c.total)}</td>
+        <td class="pos">${fmtUSD(c.totalPaid)}</td>
+        <td class="${c.remaining>0.01?'neg':'pos'}">${fmtUSD(c.remaining)}</td>
+        <td class="pos">${fmtUSD(c.profit)}</td>
+      </tr>`;
+    });
+    $('repTable').innerHTML = tableH + '</tbody>';
 
-  $('repTable').innerHTML=`<thead><tr><th>البند</th><th>المبلغ</th></tr></thead><tbody>
-    <tr><td>مبيعات الجملة</td><td class="pos">${fmtUSD(totalW)}</td></tr>
-    <tr><td>مبيعات المفرق</td><td class="pos">${fmtUSD(totalR)}</td></tr>
-    <tr><td>مرتجعات</td><td class="neg">-${fmtUSD(retTotal)}</td></tr>
-    <tr><td>أرباح الجملة</td><td class="pos">${fmtUSD(profitW)}</td></tr>
-    <tr><td>أرباح المفرق</td><td class="pos">${fmtUSD(profitR)}</td></tr>
-    <tr><td>مصاريف</td><td class="neg">-${fmtUSD(expTotal)}</td></tr>
-    <tr><td>تحصيل ديون</td><td class="pos">${fmtUSD(debtPayTotal)}</td></tr>
-    <tr><td style="font-weight:900">صافي الربح</td><td class="pos" style="font-weight:900">${fmtUSD(netProfit)}</td></tr>
-  </tbody>`;
+    // Chart logic
+    const dayLabels=[],dayProfit=[];
+    const start=new Date(from+'T00:00:00'); const end=new Date(to+'T00:00:00'); const tmp=new Date(start); let safety=0;
+    while(tmp<=end&&safety<366){
+      const ds=tmp.toISOString().slice(0,10);
+      let p=0; S.wholesale.filter(i=>i.date===ds).forEach(inv=>p+=calcInv(inv).profit);
+      dayLabels.push(tmp.toLocaleDateString('ar-EG',{month:'numeric',day:'numeric'}));
+      dayProfit.push(p);
+      tmp.setDate(tmp.getDate()+1); safety++;
+    }
+    if(chartR)chartR.destroy();
+    chartR=new Chart($('repChart'),{type:'bar',data:{labels:dayLabels,datasets:[{data:dayProfit,backgroundColor:'rgba(212,175,55,0.6)',borderColor:'#d4af37',borderWidth:1}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}}});
 
-  // Daily profit chart
-  const dayLabels=[],dayProfit=[];
-  const start=new Date(from+'T00:00:00');
-  const end=new Date(to+'T00:00:00');
-  const tmp=new Date(start);
-  let safety=0;
-  while(tmp<=end&&safety<366){
-    const ds=tmp.toISOString().slice(0,10);
-    const s=computeDaySummary(ds);
-    dayLabels.push(tmp.toLocaleDateString('ar-EG',{month:'numeric',day:'numeric'}));
-    dayProfit.push(s.netProfit);
-    tmp.setDate(tmp.getDate()+1);
-    safety++;
+  } else {
+    let totalR=0,profitR=0,retTotal=0;
+    const sales = S.retail.filter(s=>s.date>=from && s.date<=to);
+    sales.forEach(s=>{const c=calcRetail(s);totalR+=c.total;profitR+=c.profit;});
+    retTotal = S.returns.filter(r=>r.date>=from && r.date<=to).reduce((a,r)=>a+(+r.total||0),0);
+    const netSales = totalR - retTotal;
+
+    $('repStats').innerHTML=`
+      <div class="stat-card gold"><div class="stat-label">المبيعات</div><div class="stat-value">${fmtUSD(totalR)}</div></div>
+      <div class="stat-card red"><div class="stat-label">المرتجعات</div><div class="stat-value red">${fmtUSD(retTotal)}</div></div>
+      <div class="stat-card blue"><div class="stat-label">صافي المبيعات</div><div class="stat-value blue">${fmtUSD(netSales)}</div></div>
+      <div class="stat-card green"><div class="stat-label">الأرباح</div><div class="stat-value green">${fmtUSD(profitR)}</div></div>`;
+
+    let tableH = '<thead><tr><th>التاريخ</th><th>المنتجات</th><th>الإجمالي</th><th>الربح</th></tr></thead><tbody>';
+    if(!sales.length) tableH += '<tr><td colspan="4" class="empty">لا مبيعات في هذه الفترة</td></tr>';
+    else sales.sort((a,b)=>b.date.localeCompare(a.date)).forEach(s => {
+      const c = calcRetail(s);
+      tableH += `<tr>
+        <td>${fmtDate(s.date)}</td>
+        <td>${s.items.map(i=>esc(i.name)).join(', ')}</td>
+        <td>${fmtUSD(c.total)}</td>
+        <td class="pos">${fmtUSD(c.profit)}</td>
+      </tr>`;
+    });
+    $('repTable').innerHTML = tableH + '</tbody>';
+
+    // Chart logic
+    const dayLabels=[],dayProfit=[];
+    const start=new Date(from+'T00:00:00'); const end=new Date(to+'T00:00:00'); const tmp=new Date(start); let safety=0;
+    while(tmp<=end&&safety<366){
+      const ds=tmp.toISOString().slice(0,10);
+      let p=0; S.retail.filter(s=>s.date===ds).forEach(s=>p+=calcRetail(s).profit);
+      dayLabels.push(tmp.toLocaleDateString('ar-EG',{month:'numeric',day:'numeric'}));
+      dayProfit.push(p);
+      tmp.setDate(tmp.getDate()+1); safety++;
+    }
+    if(chartR)chartR.destroy();
+    chartR=new Chart($('repChart'),{type:'bar',data:{labels:dayLabels,datasets:[{data:dayProfit,backgroundColor:'rgba(90,156,255,0.6)',borderColor:'#5a9cff',borderWidth:1}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}}});
   }
-
-  if(chartR)chartR.destroy();
-  chartR=new Chart($('repChart'),{type:'bar',data:{labels:dayLabels,datasets:[{data:dayProfit,backgroundColor:'rgba(212,175,55,0.6)',borderColor:'#d4af37',borderWidth:1}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}}});
 
   showToast('تم توليد التقرير ✓');
 }
 
-function exportCSV(){
-  const rows=[['النوع','التاريخ','المرجع','الزبون','الإجمالي','المدفوع','المتبقي','الربح']];
-  S.wholesale.forEach(inv=>{
-    const c=calcInv(inv);
-    rows.push(['جملة',inv.date,inv.invoiceNo,inv.customer||'',c.total.toFixed(2),c.totalPaid.toFixed(2),c.remaining.toFixed(2),c.profit.toFixed(2)]);
-  });
-  S.retail.forEach(s=>{
-    const c=calcRetail(s);
-    rows.push(['مفرق',s.date,'','',c.total.toFixed(2),c.total.toFixed(2),'0.00',c.profit.toFixed(2)]);
-  });
-  S.expenses.forEach(e=>{
-    rows.push(['مصروف',e.date,'','','',e.amount.toFixed(2),'','' ]);
-  });
-  S.returns.forEach(r=>{
-    rows.push(['مرتجع',r.date,'',r.reason||'',(''+r.total).replace(',',''),'','','' ]);
-  });
-  S.debtPayments.forEach(p=>{
-    const inv=S.wholesale.find(i=>i.id===p.invoiceId);
-    rows.push(['دفعة دين',p.date,inv?inv.invoiceNo:'',inv?inv.customer:'',p.amount.toFixed(2),'','','']);
-  });
+function exportReportImage() {
+  const area = $('reportCaptureArea');
+  const title = $('repPrintTitle');
+  const dates = $('repPrintDates');
+  
+  title.style.display = 'block';
+  title.textContent = currentReportType === 'wholesale' ? 'تقرير الجملة' : 'تقرير المفرق';
+  dates.textContent = `من: ${fmtDate($('repFrom').value)} إلى: ${fmtDate($('repTo').value)}`;
+  
+  // تحديد لون الخلفية بناءً على الوضع الحالي (مظلم أو فاتح)
+  const bgColor = document.body.classList.contains('light-mode') ? '#ffffff' : '#07070a';
 
-  const csv=rows.map(r=>r.map(cell=>`"${String(cell==null?'':cell).replace(/"/g,'""')}"`).join(',')).join('\n');
-  const blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8;'});
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(blob);
-  a.download=`fayrouza_report_${today()}.csv`;
-  a.click();
-  showToast('تم تصدير CSV ✓');
+  showToast('جاري تجهيز الصورة...');
+
+  html2canvas(area, {scale: 2, backgroundColor: bgColor}).then(canvas => {
+    const a = document.createElement('a');
+    a.href = canvas.toDataURL('image/png');
+    a.download = `report_${currentReportType}_${today()}.png`;
+    a.click();
+    
+    // إخفاء العنوان بعد التحميل
+    title.style.display = 'none';
+    dates.textContent = '';
+    showToast('تم تصدير الصورة بنجاح 📸');
+  }).catch(err => {
+    console.error(err);
+    showToast('حدث خطأ أثناء التصدير', true);
+    title.style.display = 'none';
+  });
 }
+/* ========================================= */
 
 /* ===== Settings ===== */
 function renderSettings(){
@@ -1601,8 +1657,21 @@ function closeModal(){$('modalOverlay').classList.remove('show')}
 document.addEventListener('DOMContentLoaded',()=>{
   Chart.defaults.color='#8f8a7e';
   Chart.defaults.font.family='Cairo, sans-serif';
+  
+  // Wholesale Filters
   document.querySelectorAll('#whFilter button').forEach(b=>{b.onclick=()=>{document.querySelectorAll('#whFilter button').forEach(x=>x.classList.remove('active'));b.classList.add('active');renderWholesale();}});
   $('whSearch').oninput=()=>renderWholesale();
+
+  // Reports Filters
+  document.querySelectorAll('#repFilter button').forEach(b=>{
+    b.onclick=()=>{
+      document.querySelectorAll('#repFilter button').forEach(x=>x.classList.remove('active'));
+      b.classList.add('active');
+      currentReportType = b.dataset.r;
+      generateReport();
+    };
+  });
+
   $('modalOverlay').onclick=e=>{if(e.target.id==='modalOverlay')closeModal()};
   $('importFile').onchange=importJSON;
   setupPin();
