@@ -81,9 +81,9 @@ body.light-mode .btn-icon{background:#eee;color:#333}
 .btn-icon:hover{background:rgba(212,175,55,0.1);color:var(--gold2);border-color:var(--bdr)}
 .btn-icon.danger:hover{background:rgba(255,90,90,0.15);color:#ff8a8a}
 .table-wrap{overflow-x:auto;border-radius:10px}
-.data-table{width:100%;border-collapse:collapse;font-size:12.5px;min-width:500px}
+.data-table{width:100%;border-collapse:collapse;font-size:12.5px;table-layout:fixed;}
 .data-table thead th{padding:11px 8px;text-align:right;color:var(--muted);font-weight:600;font-size:10.5px;border-bottom:1px solid var(--bdr);white-space:nowrap}
-.data-table tbody td{padding:12px 8px;border-bottom:1px solid var(--bsoft);color:var(--txt)}
+.data-table tbody td{padding:12px 8px;border-bottom:1px solid var(--bsoft);color:var(--txt);word-wrap:break-word}
 .data-table tbody tr:hover{background:rgba(212,175,55,0.03)}
 .data-table .empty{text-align:center;color:var(--muted);padding:30px;font-size:12px}
 .data-table .pos{color:#2ecc71;font-weight:700}
@@ -124,7 +124,7 @@ body.light-mode .emp-name{color:var(--gold3)}
 body.light-mode .emp-stat{background:#f0f0f0}
 .emp-stat-label{font-size:9px;color:var(--muted);margin-bottom:4px}
 .emp-stat-value{font-size:13px;font-weight:700}
-.inv-input{width:100%;padding:7px 9px;border-radius:7px;background:rgba(0,0,0,0.4);border:1px solid rgba(255,255,255,0.1);color:#fff;font-family:inherit;font-size:12px}
+.inv-input{width:100%;padding:7px 9px;border-radius:7px;background:rgba(0,0,0,0.4);border:1px solid rgba(255,255,255,0.1);color:#fff;font-family:inherit;font-size:12px;}
 body.light-mode .inv-input{background:#fff;color:#000;border-color:#ccc}
 .wa-btn{background:#25D366;color:#fff;border:none;border-radius:8px;padding:6px 10px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;font-family:inherit;font-size:11px;font-weight:700;margin-right:4px}
 .wa-btn:hover{background:#128C7E}
@@ -143,7 +143,6 @@ body.light-mode .inv-input{background:#fff;color:#000;border-color:#ccc}
 .id-card-footer span{font-size:16px;border-bottom:1px solid #d4af37;padding-bottom:2px}
 .id-card-note{text-align:center;font-size:11px;color:#aaa;margin-top:15px;font-style:italic}
 
-/* PIN Lock */
 .pin-lock{position:fixed;inset:0;z-index:500;background:linear-gradient(160deg,#07070a,#0d0d14);display:none;align-items:center;justify-content:center;padding:20px}
 .pin-lock.show{display:flex}
 .pin-box{background:linear-gradient(160deg,#16161f,#0a0a10);border:1px solid var(--bdr);border-radius:20px;padding:32px 24px;max-width:340px;width:100%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.6)}
@@ -156,36 +155,27 @@ body.light-mode .inv-input{background:#fff;color:#000;border-color:#ccc}
 .pin-pad .pin-del{color:#ff8a8a}
 .pin-pad .pin-ok{color:#0a0a0f;background:linear-gradient(135deg,var(--gold),var(--gold3))}
 
-/* Responsive Mobile Fixes */
+/* Print CSS for Thermal Printer 80mm */
+@media print {
+  body * { visibility: hidden; }
+  #printArea, #printArea * { visibility: visible; }
+  #printArea { 
+    position: absolute; left: 0; top: 0; width: 80mm !important; 
+    margin: 0; padding: 2mm; font-family: 'Cairo', sans-serif; 
+    background: #fff; color: #000; 
+  }
+  .page-break { display: block; page-break-before: always; }
+}
+
 @media(max-width:900px){
   .app{flex-direction:column}
-  .sidebar{
-    width:100%;height:auto;position:relative;
-    border-left:none;border-bottom:1px solid var(--bdr);
-    padding:12px 10px;
-    display:flex;flex-direction:column;gap:10px;
-    overflow-y:visible;
-  }
+  .sidebar{width:100%;height:auto;position:relative;border-left:none;border-bottom:1px solid var(--bdr);padding:12px 10px;display:flex;flex-direction:column;gap:10px;overflow-y:visible}
   .logo{padding:0 0 5px;margin-bottom:0;justify-content:center}
-  .nav{
-    flex-direction:row;flex:none;
-    overflow-x:auto;overflow-y:hidden;
-    gap:6px;padding-bottom:5px;
-    -webkit-overflow-scrolling:touch;
-  }
+  .nav{flex-direction:row;flex:none;overflow-x:auto;overflow-y:hidden;gap:6px;padding-bottom:5px;-webkit-overflow-scrolling:touch}
   .nav::-webkit-scrollbar{display:none}
-  .nav-item{
-    flex-direction:column;gap:3px;
-    padding:8px 12px;font-size:10px;font-weight:600;
-    min-width:65px;width:auto;flex-shrink:0;text-align:center;
-    border-radius:8px;
-  }
+  .nav-item{flex-direction:column;gap:3px;padding:8px 12px;font-size:10px;font-weight:600;min-width:65px;width:auto;flex-shrink:0;text-align:center;border-radius:8px}
   .nav-item .ico{width:18px;height:18px}
-  .sidebar-footer{
-    position:absolute;top:15px;left:15px;
-    border:none;padding:0;font-size:18px;
-    background:transparent;color:var(--gold2);
-  }
+  .sidebar-footer{position:absolute;top:15px;left:15px;border:none;padding:0;font-size:18px;background:transparent;color:var(--gold2)}
   .main{padding:16px 10px}
   .stats-grid{grid-template-columns:repeat(2,1fr);gap:10px}
   .charts-grid{grid-template-columns:1fr}
@@ -196,12 +186,17 @@ body.light-mode .inv-input{background:#fff;color:#000;border-color:#ccc}
   .modal{padding:15px;width:95%}
   .btn{padding:10px 16px;font-size:12px}
   .btn-sm{padding:6px 10px;font-size:10px}
+  
+  /* Mobile Table Fix - No Scroll */
+  .data-table { table-layout: fixed; width: 100%; min-width: 0; }
+  .data-table thead th { padding: 5px 2px; font-size: 9px; }
+  .data-table tbody td { padding: 5px 2px; font-size: 11px; }
+  .inv-input { padding: 4px; font-size: 11px; }
 }
 </style>
 </head>
 <body>
 
-<!-- PIN Lock -->
 <div id="pinLock" class="pin-lock">
   <div class="pin-box">
     <div class="pin-logo">F</div>
@@ -262,7 +257,7 @@ body.light-mode .inv-input{background:#fff;color:#000;border-color:#ccc}
   <div class="card">
     <div class="filter-bar">
       <div class="filter-tabs" id="whFilter"><button class="active" data-f="all">الكل</button><button data-f="paid">مدفوعة</button><button data-f="part">جزئية</button><button data-f="debt">دين</button></div>
-      <input type="text" id="whSearch" placeholder="بحث بالاسم أو رقم الفاتورة...">
+      <input type="text" id="whSearch" placeholder="بحث...">
     </div>
     <div class="table-wrap"><table class="data-table" id="whTable"></table></div>
   </div>
@@ -354,6 +349,7 @@ body.light-mode .inv-input{background:#fff;color:#000;border-color:#ccc}
 <div class="modal-overlay" id="modalOverlay"><div class="modal"><div class="modal-head"><h3 id="modalTitle"></h3><button class="modal-close" onclick="closeModal()">×</button></div><div id="modalBody"></div></div></div>
 <div class="toast" id="toast"></div>
 <div id="imageRenderArea" style="position:fixed; top:-9999px; left:-9999px; z-index:-1;"></div>
+<div id="printArea" style="display:none;"></div>
 
 <script>
 /* ===== Storage ===== */
@@ -513,19 +509,18 @@ function renderWholesale(){
     if(search&&!(inv.customer||'').toLowerCase().includes(search)&&!(inv.invoiceNo||'').toLowerCase().includes(search))return false;
     return true;
   }).sort((a,b)=>b.date.localeCompare(a.date));
-  let h='<thead><tr><th>رقم</th><th>الزبون</th><th>التاريخ</th><th>الإجمالي</th><th>المتبقي</th><th>الحالة</th><th>إجراءات</th></tr></thead><tbody>';
-  if(!filtered.length)h+='<tr><td colspan="7" class="empty">لا توجد فواتير</td></tr>';
+  
+  let h='<thead><tr><th style="width:15%">رقم</th><th style="width:30%">الزبون</th><th style="width:20%">المتبقي</th><th style="width:35%">إجراءات</th></tr></thead><tbody>';
+  if(!filtered.length)h+='<tr><td colspan="4" class="empty">لا توجد فواتير</td></tr>';
   else filtered.forEach(inv=>{
     const c=calcInv(inv);
-    const labels={paid:'مدفوعة',part:'جزئية',debt:'دين'};
     h+=`<tr>
-      <td>${esc(inv.invoiceNo)}</td><td>${esc(inv.customer)}</td><td>${fmtDate(inv.date)}</td>
-      <td>${fmtUSD(c.total)}</td><td class="${c.remaining>0.01?'neg':'pos'}">${fmtUSD(c.remaining)}</td>
-      <td><span class="badge ${c.status}">${labels[c.status]}</span></td>
+      <td>${esc(inv.invoiceNo)}</td><td>${esc(inv.customer)}</td>
+      <td class="${c.remaining>0.01?'neg':'pos'}">${fmtUSD(c.remaining)}</td>
       <td class="acts">
-        <button class="btn-icon" onclick="openInvoiceModal('${inv.id}')">✎</button>
-        <button class="btn-icon" onclick="downloadInvoice('${inv.id}')">📥</button>
-        <button class="btn-icon danger" onclick="delInv('${inv.id}')">×</button>
+        <button class="btn-icon" onclick="openInvoiceModal('${inv.id}')" title="تعديل">✎</button>
+        <button class="btn-icon" onclick="printInvoice('${inv.id}')" title="طباعة حرارية">🖨️</button>
+        <button class="btn-icon danger" onclick="delInv('${inv.id}')" title="حذف">×</button>
       </td></tr>`;
   });
   $('whTable').innerHTML=h+'</tbody>';
@@ -547,7 +542,10 @@ function openInvoiceModal(id){
     </div>
     <h3 style="margin:18px 0 10px;color:var(--gold2);font-size:14px">المنتجات</h3>
     ${prodSelect}
-    <div style="overflow-x:auto"><table class="data-table" style="min-width:520px"><thead><tr><th>المنتج</th><th>الكمية</th><th>سعر الشراء</th><th>سعر البيع</th><th></th></tr></thead><tbody id="invItems"></tbody></table></div>
+    <table class="data-table" style="margin-top:10px;">
+      <thead><tr><th style="width:35%">المنتج</th><th style="width:15%">الكمية</th><th style="width:20%">الشراء</th><th style="width:20%">البيع</th><th style="width:10%"></th></tr></thead>
+      <tbody id="invItems"></tbody>
+    </table>
     <button type="button" class="btn btn-ghost btn-sm" style="margin-top:10px" onclick="addInvRow()">+ إضافة منتج يدوي</button>
     <div class="form-grid" style="margin-top:18px">
       <div class="field"><label>خصم ($)</label><input type="number" step="0.01" id="invDiscount" value="${data.discount||0}"></div>
@@ -576,9 +574,9 @@ function addInvRow(it){
   const tr=document.createElement('tr');
   tr.innerHTML=`
     <td><input class="inv-input it-name" value="${esc(it.name)}"></td>
-    <td><input class="inv-input it-qty" type="number" value="${it.qty}" style="width:70px"></td>
-    <td><input class="inv-input it-cost" type="number" step="0.01" value="${it.cost}" style="width:85px"></td>
-    <td><input class="inv-input it-price" type="number" step="0.01" value="${it.price}" style="width:85px"></td>
+    <td><input class="inv-input it-qty" type="number" value="${it.qty}"></td>
+    <td><input class="inv-input it-cost" type="number" step="0.01" value="${it.cost}"></td>
+    <td><input class="inv-input it-price" type="number" step="0.01" value="${it.price}"></td>
     <td><button class="btn-icon danger" onclick="this.closest('tr').remove();recalcInv()">×</button></td>`;
   $('invItems').appendChild(tr);
   tr.querySelectorAll('input').forEach(i=>i.oninput=recalcInv);
@@ -605,36 +603,6 @@ function delInv(id){
   S.debtPayments=S.debtPayments.filter(p=>p.invoiceId!==id);
   persist();renderWholesale();
 }
-function downloadInvoice(id){
-  const inv=S.wholesale.find(x=>x.id===id);if(!inv)return;
-  const c=calcInv(inv);
-  let rows=inv.items.map(it=>`<tr><td style="border:1px solid #ccc;padding:8px">${esc(it.name)}</td><td style="border:1px solid #ccc;padding:8px;text-align:center">${it.qty}</td><td style="border:1px solid #ccc;padding:8px;text-align:center">$${(+it.price).toFixed(2)}</td></tr>`).join('');
-  const html=`
-    <div style="font-family:Cairo,sans-serif;width:600px;padding:30px;background:#fff;color:#000;direction:rtl">
-      <div style="text-align:center;border-bottom:2px solid #d4af37;padding-bottom:15px;margin-bottom:20px">
-        <h1 style="margin:0;color:#a8842a">${esc(S.settings.wholesaleName)}</h1>
-        <p style="color:#666">فاتورة مبيعات</p>
-      </div>
-      <div style="display:flex;justify-content:space-between;margin-bottom:20px">
-        <div><strong>رقم:</strong> ${esc(inv.invoiceNo)}<br><strong>التاريخ:</strong> ${fmtDate(inv.date)}</div>
-        <div><strong>الزبون:</strong> ${esc(inv.customer)}<br><strong>الهاتف:</strong> ${esc(inv.phone||'-')}</div>
-      </div>
-      <table style="width:100%;border-collapse:collapse;margin-bottom:20px">
-        <thead><tr style="background:#f7e9b5"><th style="border:1px solid #ccc;padding:8px">المنتج</th><th style="border:1px solid #ccc;padding:8px">الكمية</th><th style="border:1px solid #ccc;padding:8px">السعر</th></tr></thead>
-        <tbody>${rows}</tbody>
-      </table>
-      <div style="text-align:left">
-        <p><strong>الإجمالي:</strong> $${c.total.toFixed(2)}</p>
-        <p><strong>المدفوع:</strong> $${c.totalPaid.toFixed(2)}</p>
-        <p style="color:${c.remaining>0?'red':'green'}"><strong>المتبقي:</strong> $${c.remaining.toFixed(2)}</p>
-      </div>
-    </div>`;
-  $('imageRenderArea').innerHTML=html;
-  html2canvas($('imageRenderArea').firstElementChild,{scale:2}).then(canvas=>{
-    const a=document.createElement('a');a.href=canvas.toDataURL('image/png');a.download=`Invoice_${inv.invoiceNo}.png`;a.click();
-    $('imageRenderArea').innerHTML='';showToast('تم التحميل 📥');
-  });
-}
 
 /* ===== Retail ===== */
 function renderRetail(){
@@ -647,7 +615,8 @@ function renderRetail(){
     <div class="stat-card gold"><div class="stat-label">مبيعات اليوم</div><div class="stat-value">${fmtUSD(total-retT)}</div></div>
     <div class="stat-card green"><div class="stat-label">ربح اليوم</div><div class="stat-value green">${fmtUSD(profit-retT)}</div></div>`;
   const list=S.retail.filter(s=>s.date===tdy).sort((a,b)=>b.id.localeCompare(a.id));
-  let h='<thead><tr><th>المنتجات</th><th>المجموع</th><th>إجراءات</th></tr></thead><tbody>';
+  
+  let h='<thead><tr><th style="width:40%">المنتجات</th><th style="width:30%">المجموع</th><th style="width:30%">إجراءات</th></tr></thead><tbody>';
   if(!list.length)h+='<tr><td colspan="3" class="empty">لا توجد مبيعات</td></tr>';
   else list.forEach(s=>{
     const c=calcRetail(s);
@@ -655,7 +624,7 @@ function renderRetail(){
       <td>${s.items.map(i=>esc(i.name)).join(', ')}</td><td>${fmtUSD(c.total)}</td>
       <td class="acts">
         <button class="btn-icon" onclick="openRetailModal('${s.id}')">✎</button>
-        <button class="btn-icon danger" onclick="processReturn('${s.id}', 'retail', ${c.total}, ${c.profit})" title="مرتجع">🔄</button>
+        <button class="btn-icon" onclick="printRetail('${s.id}')" title="طباعة حرارية">🖨️</button>
         <button class="btn-icon danger" onclick="delRetail('${s.id}')">×</button>
       </td></tr>`;
   });
@@ -671,8 +640,11 @@ function openRetailModal(id){
   const html=`
     <div class="form-grid"><div class="field"><label>التاريخ</label><input type="date" id="rtDate" value="${data.date}"></div></div>
     ${prodSelect}
-    <table class="data-table" style="margin-top:15px"><thead><tr><th>المنتج</th><th>الكمية</th><th>التكلفة</th><th>السعر</th><th></th></tr></thead><tbody id="rtItems"></tbody></table>
-    <button class="btn btn-ghost btn-sm" onclick="addRtRow()">+ إضافة منتج يدوي</button>
+    <table class="data-table" style="margin-top:10px;">
+      <thead><tr><th style="width:35%">المنتج</th><th style="width:15%">الكمية</th><th style="width:20%">التكلفة</th><th style="width:20%">السعر</th><th style="width:10%"></th></tr></thead>
+      <tbody id="rtItems"></tbody>
+    </table>
+    <button class="btn btn-ghost btn-sm" onclick="addRtRow()" style="margin-top:10px">+ إضافة منتج يدوي</button>
     <div class="modal-actions"><button class="btn btn-ghost" onclick="closeModal()">إلغاء</button><button class="btn btn-gold" onclick="saveRetail('${data.id}')">حفظ</button></div>`;
   openModal('تسجيل بيع',html);
   data.items.forEach(it=>addRtRow(it));
@@ -682,9 +654,9 @@ function addRtRow(it){
   const tr=document.createElement('tr');
   tr.innerHTML=`
     <td><input class="inv-input r-name" value="${esc(it.name)}"></td>
-    <td><input class="inv-input r-qty" type="number" value="${it.qty}" style="width:60px"></td>
-    <td><input class="inv-input r-cost" type="number" value="${it.cost}" style="width:70px"></td>
-    <td><input class="inv-input r-price" type="number" value="${it.price}" style="width:70px"></td>
+    <td><input class="inv-input r-qty" type="number" value="${it.qty}"></td>
+    <td><input class="inv-input r-cost" type="number" value="${it.cost}"></td>
+    <td><input class="inv-input r-price" type="number" value="${it.price}"></td>
     <td><button class="btn-icon danger" onclick="this.closest('tr').remove()">×</button></td>`;
   $('rtItems').appendChild(tr);
 }
@@ -705,10 +677,65 @@ function delRetail(id){
   if(!confirm('حذف البيع؟'))return;
   S.retail=S.retail.filter(x=>x.id!==id);persist();renderRetail();
 }
-function processReturn(id,type,total,profit){
-  if(!confirm('تأكيد المرتجع؟ سيتم خصم المبلغ من إحصائيات اليوم.'))return;
-  S.returns.push({id:uid(),refId:id,type,total,profit,date:today()});
-  persist();showToast('تم تسجيل المرتجع 🔄');renderRetail();
+
+/* ===== Printing (80mm Thermal) ===== */
+function printInvoice(id){
+  const inv=S.wholesale.find(x=>x.id===id);if(!inv)return;
+  const c=calcInv(inv);
+  let rows=inv.items.map(it=>`<tr><td style="border-bottom:1px dashed #000;padding:4px 0">${esc(it.name)}</td><td style="border-bottom:1px dashed #000;padding:4px 0;text-align:center">${it.qty}</td><td style="border-bottom:1px dashed #000;padding:4px 0;text-align:left">$${(+it.price).toFixed(2)}</td></tr>`).join('');
+  
+  $('printArea').innerHTML=`
+    <div style="text-align:center;margin-bottom:10px;">
+      <h2 style="margin:0;font-size:18px;">${esc(S.settings.wholesaleName)}</h2>
+      <p style="margin:2px 0;font-size:11px;">فاتورة جملة</p>
+    </div>
+    <div style="font-size:11px;margin-bottom:10px;border-bottom:1px dashed #000;padding-bottom:5px;">
+      <div><strong>رقم:</strong> ${esc(inv.invoiceNo)}</div>
+      <div><strong>التاريخ:</strong> ${fmtDate(inv.date)}</div>
+      <div><strong>الزبون:</strong> ${esc(inv.customer)}</div>
+      <div><strong>الهاتف:</strong> ${esc(inv.phone||'-')}</div>
+    </div>
+    <table style="width:100%;border-collapse:collapse;font-size:11px;margin-bottom:10px;">
+      <thead><tr><th style="text-align:right">المنتج</th><th>كمية</th><th style="text-align:left">سعر</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+    <div style="font-size:12px;border-top:1px dashed #000;padding-top:5px;">
+      <div style="display:flex;justify-content:space-between;"><span>الإجمالي:</span><span>$${c.total.toFixed(2)}</span></div>
+      <div style="display:flex;justify-content:space-between;"><span>المدفوع:</span><span>$${c.totalPaid.toFixed(2)}</span></div>
+      <div style="display:flex;justify-content:space-between;font-weight:bold;color:${c.remaining>0?'#000':'#000'};"><span>المتبقي:</span><span>$${c.remaining.toFixed(2)}</span></div>
+    </div>
+    <div style="text-align:center;margin-top:15px;font-size:10px;">شكراً لتعاملكم معنا</div>`;
+  
+  $('printArea').style.display='block';
+  window.print();
+  setTimeout(()=>{$('printArea').style.display='none'},500);
+}
+
+function printRetail(id){
+  const sale=S.retail.find(x=>x.id===id);if(!sale)return;
+  const c=calcRetail(sale);
+  let rows=sale.items.map(it=>`<tr><td style="border-bottom:1px dashed #000;padding:4px 0">${esc(it.name)}</td><td style="border-bottom:1px dashed #000;padding:4px 0;text-align:center">${it.qty}</td><td style="border-bottom:1px dashed #000;padding:4px 0;text-align:left">$${(+it.price).toFixed(2)}</td></tr>`).join('');
+  
+  $('printArea').innerHTML=`
+    <div style="text-align:center;margin-bottom:10px;">
+      <h2 style="margin:0;font-size:18px;">${esc(S.settings.retailName)}</h2>
+      <p style="margin:2px 0;font-size:11px;">فاتورة مفرق</p>
+    </div>
+    <div style="font-size:11px;margin-bottom:10px;border-bottom:1px dashed #000;padding-bottom:5px;">
+      <div><strong>التاريخ:</strong> ${fmtDate(sale.date)}</div>
+    </div>
+    <table style="width:100%;border-collapse:collapse;font-size:11px;margin-bottom:10px;">
+      <thead><tr><th style="text-align:right">المنتج</th><th>كمية</th><th style="text-align:left">سعر</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+    <div style="font-size:12px;border-top:1px dashed #000;padding-top:5px;">
+      <div style="display:flex;justify-content:space-between;font-weight:bold;"><span>الإجمالي:</span><span>$${c.total.toFixed(2)}</span></div>
+    </div>
+    <div style="text-align:center;margin-top:15px;font-size:10px;">شكراً لتعاملكم معنا</div>`;
+  
+  $('printArea').style.display='block';
+  window.print();
+  setTimeout(()=>{$('printArea').style.display='none'},500);
 }
 
 /* ===== Products ===== */
