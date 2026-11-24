@@ -304,7 +304,7 @@ body.light-mode .inv-input{background:#fff;color:#000;border-color:#ccc}
 </section>
 
 <section class="page" id="page-expenses">
-  <div class="page-head"><div><h1>المصاريف</h1><p class="muted">سجل مصاريف المتجر</p></div><button class="btn btn-gold" onclick="openExpenseModal()">+ مصروف</button></div>
+  <div class="page-head"><div><h1>المصاريف</h1><p class="muted">سجل مصاريف المتجر والشخصية</p></div><button class="btn btn-gold" onclick="openExpenseModal()">+ مصروف</button></div>
   <div class="stats-grid" id="exStats"></div>
   <div class="card"><div class="table-wrap"><table class="data-table" id="exTable"></table></div></div>
 </section>
@@ -507,16 +507,35 @@ function computeDaySummary(d){
   let salesW=0,profitW=0,salesR=0,profitR=0,newDebts=0;
   S.wholesale.filter(i=>i.date===d).forEach(inv=>{const c=calcInv(inv);salesW+=c.total;profitW+=c.profit;newDebts+=c.remaining;});
   S.retail.filter(s=>s.date===d).forEach(s=>{const c=calcRetail(s);salesR+=c.total;profitR+=c.profit;});
-  const expenses=S.expenses.filter(e=>e.date===d).reduce((a,e)=>a+(+e.amount||0),0);
-  const returns=S.returns.filter(r=>r.date===d).reduce((a,r)=>a+(+r.total||0),0);
-  const debtPays=S.debtPayments.filter(p=>p.date===d).reduce((a,p)=>a+(+p.amount||0),0);
-  return{salesW,salesR,profitW,profitR,newDebts,expenses,returns,debtPays,
-    cashIn:salesW+salesR+debtPays-expenses-returns,
-    netProfit:profitW+profitR-expenses-returns,
-    totalSales:salesW+salesR-returns};
+  
+  // فصل المصاريف
+  let expStore = 0, expPersonal = 0;
+  S.expenses.filter(e=>e.date===d).forEach(e => {
+    if(e.type === 'personal') expPersonal += (+e.amount||0);
+    else expStore += (+e.amount||0);
+  });
+  
+  const totalExpenses = expStore + expPersonal;
+  const returns = S.returns.filter(r=>r.date===d).reduce((a,r)=>a+(+r.total||0),0);
+  const debtPays = S.debtPayments.filter(p=>p.date===d).reduce((a,p)=>a+(+p.amount||0),0);
+
+  // صافي الكاش يخصم كل شيء (لأن الفلوس خرجت من الدرج)
+  const cashIn = salesW + salesR + debtPays - totalExpenses - returns;
+  
+  // صافي الربح يخصم مصاريف المحل فقط (المصاريف الشخصية لا تعتبر خسارة للمحل)
+  const netProfit = profitW + profitR - expStore - returns;
+
+  return {
+    salesW, salesR, profitW, profitR, newDebts, 
+    expenses: totalExpenses, 
+    expensesStore: expStore, 
+    expensesPersonal: expPersonal,
+    returns, debtPays, cashIn, netProfit,
+    totalSales: salesW + salesR - returns
+  };
 }
 
-/* ===== Auto Close Day (Backdating) ===== */
+/* ===== Auto Close Day (Backdating / Editing) ===== */
 function autoCloseDay(dateStr){
   if(!dateStr || dateStr === today()) return; // لا تغلق إذا كان تاريخ اليوم
   
@@ -527,10 +546,10 @@ function autoCloseDay(dateStr){
     S.closedDays[existingIndex].summary = summary;
     S.closedDays[existingIndex].closedAt = new Date().toISOString();
   } else {
+    // إذا تم التعديل على يوم قديم غير مسكر، نسجله في الأرشيف
     S.closedDays.push({date: dateStr, closedAt: new Date().toISOString(), summary});
   }
   persist();
-  showToast(`تم تسكير صندوق يوم ${dateStr} تلقائياً`, false);
 }
 
 /* ===== Navigation ===== */
@@ -569,7 +588,7 @@ function renderDashboard(){
   let mP=0;
   S.retail.filter(s=>s.date.startsWith(month)).forEach(s=>mP+=calcRetail(s).profit);
   S.wholesale.filter(i=>i.date.startsWith(month)).forEach(inv=>mP+=calcInv(inv).profit);
-  S.expenses.filter(e=>e.date.startsWith(month)).forEach(e=>mP-=(+e.amount||0));
+  S.expenses.filter(e=>e.date.startsWith(month) && e.type !== 'personal').forEach(e=>mP-=(+e.amount||0));
   S.returns.filter(r=>r.date.startsWith(month)).forEach(r=>mP-=(+r.total||0));
   $('dProfitMonth').textContent=fmtUSD(mP);
   let debts=0;S.wholesale.forEach(inv=>debts+=calcInv(inv).remaining);
@@ -712,7 +731,6 @@ function parseCostInput(inputElement) {
 function addInvRow(it){
   it=it||{name:'',qty:1,cost:'',price:''};
   const tr=document.createElement('tr');
-  // تم تغيير type الخانة cost إلى text ليقبل حرف A
   tr.innerHTML=`
     <td><input class="inv-input it-name" value="${esc(it.name)}"></td>
     <td><input class="inv-input it-qty" type="number" value="${it.qty}"></td>
@@ -727,7 +745,7 @@ function addInvRow(it){
   
   const costInput = tr.querySelector('.it-cost');
   costInput.oninput = recalcInv;
-  costInput.onblur = function() { parseCostInput(this); }; // تفعيل التحويل عند الخروج
+  costInput.onblur = function() { parseCostInput(this); };
   
   recalcInv();
 }
@@ -737,7 +755,7 @@ function recalcInv(){
   document.querySelectorAll('#invItems tr').forEach(r=>{
     const qty=+r.querySelector('.it-qty')?.value||0;
     const price=+r.querySelector('.it-price')?.value||0;
-    const cst=parseFloat(r.querySelector('.it-cost')?.value)||0; // parseFloat لتفادي NaN
+    const cst=parseFloat(r.querySelector('.it-cost')?.value)||0;
     sub+=qty*price;cost+=qty*cst;
   });
   const discount=+($('invDiscount')?.value||0);
@@ -759,10 +777,14 @@ function saveInvoice(id,isEdit){
   });
   if(!items.length)return showToast('أضف منتجاً',true);
   const inv={id,invoiceNo:$('invNo').value.trim(),customer:$('invCustomer').value.trim()||'زبون',phone:$('invPhone').value.trim(),date:$('invDate').value,items,discount:+$('invDiscount').value||0,paid:+$('invPaid').value||0,notes:$('invNotes').value.trim()};
+  
+  const oldInv = S.wholesale.find(x=>x.id===id);
+  const oldDate = oldInv ? oldInv.date : null;
+
   const i=S.wholesale.findIndex(x=>x.id===id);
   if(i>=0)S.wholesale[i]=inv;else S.wholesale.push(inv);
   
-  // تسكير اليوم تلقائياً إذا كان التاريخ قديماً
+  if(oldDate && oldDate !== inv.date) autoCloseDay(oldDate);
   autoCloseDay(inv.date);
   
   persist();closeModal();showToast('تم الحفظ ☁️');renderWholesale();
@@ -773,7 +795,7 @@ function delInv(id){
   S.wholesale=S.wholesale.filter(x=>x.id!==id);
   S.debtPayments=S.debtPayments.filter(p=>p.invoiceId!==id);
   
-  if(inv) autoCloseDay(inv.date); // تحديث الصندوق إذا تم حذف فاتورة قديمة
+  if(inv) autoCloseDay(inv.date);
   
   persist();renderWholesale();
 }
@@ -858,20 +880,24 @@ function saveRetail(id){
   });
   if(!items.length)return showToast('أضف منتجاً',true);
   const sale={id,date:$('rtDate').value,items};
+  
+  const oldSale = S.retail.find(x=>x.id===id);
+  const oldDate = oldSale ? oldSale.date : null;
+
   const i=S.retail.findIndex(x=>x.id===id);
   if(i>=0)S.retail[i]=sale;else S.retail.push(sale);
   
-  // تسكير اليوم تلقائياً إذا كان التاريخ قديماً
+  if(oldDate && oldDate !== sale.date) autoCloseDay(oldDate);
   autoCloseDay(sale.date);
   
-  persist();closeModal();renderRetail();
+  persist();closeModal();renderRetail();showToast('تم الحفظ ☁️');
 }
 function delRetail(id){
   if(!confirm('حذف البيع؟'))return;
   const sale = S.retail.find(x=>x.id===id);
   S.retail=S.retail.filter(x=>x.id!==id);
   
-  if(sale) autoCloseDay(sale.date); // تحديث الصندوق إذا تم حذف بيع قديم
+  if(sale) autoCloseDay(sale.date);
   
   persist();renderRetail();
 }
@@ -1142,7 +1168,6 @@ function openCustomerDebts(idx){
   const g=_debtGroupsCache[idx];
   if(!g)return;
 
-  // زر الدفعة الإجمالية أسفل المبلغ الكلي
   let h=`<div style="margin-bottom:15px;text-align:center;padding:14px;border-radius:12px;background:rgba(255,90,90,0.08);border:1px solid rgba(255,90,90,0.25)">
     <div style="font-size:11px;color:var(--muted);margin-bottom:4px">إجمالي ما على الزبون</div>
     <div style="font-size:26px;font-weight:900;color:#ff8a8a;margin-bottom:12px">${fmtUSD(g.total)}</div>
@@ -1205,13 +1230,11 @@ function saveTotalDebtPay(idx){
   if(amountToPay<=0)return showToast('أدخل مبلغاً صحيحاً',true);
   if(amountToPay > g.total + 0.01) return showToast('المبلغ أكبر من إجمالي الدين!',true);
 
-  // ترتيب الفواتير من الأقدم للأحدث (حسب التاريخ ثم الـ ID)
   const sortedInvoices = g.invoices.slice().sort((a, b) => {
     const dateComp = a.inv.date.localeCompare(b.inv.date);
     return dateComp !== 0 ? dateComp : a.inv.id.localeCompare(b.inv.id);
   });
 
-  // التوزيع
   for(let item of sortedInvoices){
     if(amountToPay <= 0) break;
     
@@ -1399,24 +1422,49 @@ function delEmployeeNote(id){
 
 /* ===== Expenses ===== */
 function renderExpenses(){
-  let h='<thead><tr><th>التاريخ</th><th>المبلغ</th><th>إجراء</th></tr></thead><tbody>';
-  if(!S.expenses.length)h+='<tr><td colspan="3" class="empty">لا توجد مصاريف</td></tr>';
-  else S.expenses.slice().sort((a,b)=>b.date.localeCompare(a.date)).forEach(e=>{h+=`<tr><td>${fmtDate(e.date)}</td><td class="neg">${fmtUSD(e.amount)}</td><td><button class="btn-icon danger" onclick="delExpense('${e.id}')">×</button></td></tr>`});
+  const totalExp = S.expenses.reduce((a,e)=>a+(+e.amount||0),0);
+  const storeExp = S.expenses.filter(e=>e.type!=='personal').reduce((a,e)=>a+(+e.amount||0),0);
+  const personalExp = S.expenses.filter(e=>e.type==='personal').reduce((a,e)=>a+(+e.amount||0),0);
+
+  $('exStats').innerHTML=`
+    <div class="stat-card red"><div class="stat-label">إجمالي المصاريف</div><div class="stat-value red">${fmtUSD(totalExp)}</div></div>
+    <div class="stat-card"><div class="stat-label">مصاريف المحل</div><div class="stat-value">${fmtUSD(storeExp)}</div></div>
+    <div class="stat-card gold"><div class="stat-label">مصاريف شخصية (سحب)</div><div class="stat-value">${fmtUSD(personalExp)}</div></div>`;
+
+  let h='<thead><tr><th>التاريخ</th><th>النوع</th><th>المبلغ</th><th>إجراء</th></tr></thead><tbody>';
+  if(!S.expenses.length)h+='<tr><td colspan="4" class="empty">لا توجد مصاريف</td></tr>';
+  else S.expenses.slice().sort((a,b)=>b.date.localeCompare(a.date)).forEach(e=>{
+    const typeLabel = e.type === 'personal' ? '<span class="badge debt">شخصي</span>' : '<span class="badge cat">محل</span>';
+    h+=`<tr>
+      <td>${fmtDate(e.date)}</td>
+      <td>${typeLabel}</td>
+      <td class="neg">${fmtUSD(e.amount)}</td>
+      <td><button class="btn-icon danger" onclick="delExpense('${e.id}')">×</button></td>
+    </tr>`;
+  });
   $('exTable').innerHTML=h+'</tbody>';
-  $('exStats').innerHTML=`<div class="stat-card red"><div class="stat-label">إجمالي المصاريف</div><div class="stat-value red">${fmtUSD(S.expenses.reduce((a,e)=>a+(+e.amount||0),0))}</div></div>`;
 }
 function openExpenseModal(){
-  const html=`<div class="form-grid"><div class="field"><label>المبلغ</label><input type="number" id="exAmt" value="0"></div><div class="field"><label>التاريخ</label><input type="date" id="exDate" value="${today()}"></div></div>
+  const html=`
+    <div class="form-grid">
+      <div class="field"><label>المبلغ</label><input type="number" id="exAmt" value="0"></div>
+      <div class="field"><label>النوع</label><select id="exType">
+        <option value="store">مصاريف محل</option>
+        <option value="personal">مصاريف شخصية</option>
+      </select></div>
+      <div class="field full"><label>التاريخ</label><input type="date" id="exDate" value="${today()}"></div>
+    </div>
     <div class="modal-actions"><button class="btn btn-ghost" onclick="closeModal()">إلغاء</button><button class="btn btn-gold" onclick="saveExpense()">حفظ</button></div>`;
   openModal('إضافة مصروف',html);
 }
 function saveExpense(){
   const amt=+$('exAmt').value||0;if(amt<=0)return;
+  const type = $('exType').value;
   const date = $('exDate').value||today();
-  S.expenses.push({id:uid(),amount:amt,date});
+  S.expenses.push({id:uid(),amount:amt,type,date});
   
   autoCloseDay(date);
-  persist();closeModal();renderExpenses();
+  persist();closeModal();renderExpenses();showToast('تم الحفظ ☁️');
 }
 function delExpense(id){
   const ex = S.expenses.find(x=>x.id===id);
@@ -1448,7 +1496,8 @@ function renderCashClose(){
       <div class="summary-row"><span>مبيعات المفرق</span><strong>${fmtUSD(s.salesR)}</strong></div>
       <div class="summary-row"><span>تحصيل ديون اليوم</span><strong style="color:#8ff5b0">+${fmtUSD(s.debtPays)}</strong></div>
       <div class="summary-row"><span>مرتجعات</span><strong style="color:#ff8a8a">-${fmtUSD(s.returns)}</strong></div>
-      <div class="summary-row"><span>مصاريف</span><strong style="color:#ff8a8a">-${fmtUSD(s.expenses)}</strong></div>
+      <div class="summary-row"><span>مصاريف المحل</span><strong style="color:#ff8a8a">-${fmtUSD(s.expensesStore)}</strong></div>
+      <div class="summary-row"><span>مصاريف شخصية</span><strong style="color:#ff8a8a">-${fmtUSD(s.expensesPersonal)}</strong></div>
       <div class="summary-row total"><span>صافي الكاش اليوم</span><strong>${fmtUSD(s.cashIn)}</strong></div>
       <div class="summary-row"><span>ربح الجملة</span><strong style="color:#8ff5b0">${fmtUSD(s.profitW)}</strong></div>
       <div class="summary-row"><span>ربح المفرق</span><strong style="color:#8ff5b0">${fmtUSD(s.profitR)}</strong></div>
@@ -1574,7 +1623,6 @@ function exportReportImage() {
   title.textContent = currentReportType === 'wholesale' ? 'تقرير الجملة' : 'تقرير المفرق';
   dates.textContent = `من: ${fmtDate($('repFrom').value)} إلى: ${fmtDate($('repTo').value)}`;
   
-  // تحديد لون الخلفية بناءً على الوضع الحالي (مظلم أو فاتح)
   const bgColor = document.body.classList.contains('light-mode') ? '#ffffff' : '#07070a';
 
   showToast('جاري تجهيز الصورة...');
@@ -1585,7 +1633,6 @@ function exportReportImage() {
     a.download = `report_${currentReportType}_${today()}.png`;
     a.click();
     
-    // إخفاء العنوان بعد التحميل
     title.style.display = 'none';
     dates.textContent = '';
     showToast('تم تصدير الصورة بنجاح 📸');
@@ -1658,11 +1705,9 @@ document.addEventListener('DOMContentLoaded',()=>{
   Chart.defaults.color='#8f8a7e';
   Chart.defaults.font.family='Cairo, sans-serif';
   
-  // Wholesale Filters
   document.querySelectorAll('#whFilter button').forEach(b=>{b.onclick=()=>{document.querySelectorAll('#whFilter button').forEach(x=>x.classList.remove('active'));b.classList.add('active');renderWholesale();}});
   $('whSearch').oninput=()=>renderWholesale();
 
-  // Reports Filters
   document.querySelectorAll('#repFilter button').forEach(b=>{
     b.onclick=()=>{
       document.querySelectorAll('#repFilter button').forEach(x=>x.classList.remove('active'));
