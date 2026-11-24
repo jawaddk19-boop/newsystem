@@ -1442,14 +1442,15 @@ function renderExpenses(){
     <div class="stat-card"><div class="stat-label">مصاريف المحل</div><div class="stat-value">${fmtUSD(storeExp)}</div></div>
     <div class="stat-card gold"><div class="stat-label">مصاريف شخصية (سحب)</div><div class="stat-value">${fmtUSD(personalExp)}</div></div>`;
 
-  let h='<thead><tr><th>التاريخ</th><th>النوع</th><th>المبلغ</th><th>إجراء</th></tr></thead><tbody>';
-  if(!S.expenses.length)h+='<tr><td colspan="4" class="empty">لا توجد مصاريف</td></tr>';
+  let h='<thead><tr><th>التاريخ</th><th>النوع</th><th>المبلغ</th><th>الملاحظات</th><th>إجراء</th></tr></thead><tbody>';
+  if(!S.expenses.length)h+='<tr><td colspan="5" class="empty">لا توجد مصاريف</td></tr>';
   else S.expenses.slice().sort((a,b)=>b.date.localeCompare(a.date)).forEach(e=>{
     const typeLabel = e.type === 'personal' ? '<span class="badge debt">شخصي</span>' : '<span class="badge cat">محل</span>';
     h+=`<tr>
       <td>${fmtDate(e.date)}</td>
       <td>${typeLabel}</td>
       <td class="neg">${fmtUSD(e.amount)}</td>
+      <td style="color:var(--muted); font-size:11px; max-width:150px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${esc(e.note||'')}">${esc(e.note||'-')}</td>
       <td><button class="btn-icon danger" onclick="delExpense('${e.id}')">×</button></td>
     </tr>`;
   });
@@ -1464,6 +1465,7 @@ function openExpenseModal(){
         <option value="personal">مصاريف شخصية</option>
       </select></div>
       <div class="field full"><label>التاريخ</label><input type="date" id="exDate" value="${today()}"></div>
+      <div class="field full"><label>الملاحظات / السبب (اختياري)</label><input type="text" id="exNote" placeholder="مثال: فاتورة كهرباء، سحب شخصي..."></div>
     </div>
     <div class="modal-actions"><button class="btn btn-ghost" onclick="closeModal()">إلغاء</button><button class="btn btn-gold" onclick="saveExpense()">حفظ</button></div>`;
   openModal('إضافة مصروف',html);
@@ -1471,8 +1473,9 @@ function openExpenseModal(){
 function saveExpense(){
   const amt=+$('exAmt').value||0;if(amt<=0)return;
   const type = $('exType').value;
+  const note = $('exNote').value.trim();
   const date = $('exDate').value||today();
-  S.expenses.push({id:uid(),amount:amt,type,date});
+  S.expenses.push({id:uid(),amount:amt,type,note,date});
   
   autoCloseDay(date);
   persist();closeModal();renderExpenses();showToast('تم الحفظ ☁️');
