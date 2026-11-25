@@ -1000,6 +1000,24 @@ function printRetail(id){
   doPrint();
 }
 
+function printReceipt(customerName, amountPaid, totalRemaining, date) {
+  $('printArea').innerHTML=`
+    <div style="text-align:center;margin-bottom:10px;">
+      <h2 style="margin:0;font-size:18px;">${esc(S.settings.wholesaleName)}</h2>
+      <p style="margin:2px 0;font-size:11px;">وصل دفع</p>
+    </div>
+    <div style="font-size:12px;margin-bottom:10px;border-bottom:1px dashed #000;padding-bottom:5px;">
+      <div><strong>الزبون:</strong> ${esc(customerName)}</div>
+      <div><strong>التاريخ:</strong> ${fmtDate(date)}</div>
+    </div>
+    <div style="font-size:14px;margin-bottom:10px;">
+      <div style="display:flex;justify-content:space-between;margin-bottom:5px;"><span>المبلغ المدفوع:</span><strong>${fmtUSD(amountPaid)}</strong></div>
+      <div style="display:flex;justify-content:space-between;"><span>الرصيد المتبقي:</span><strong>${fmtUSD(totalRemaining)}</strong></div>
+    </div>
+    <div style="text-align:center;margin-top:15px;font-size:10px;">شكراً لتعاملكم معنا</div>`;
+  doPrint();
+}
+
 function doPrint(){
   $('printArea').style.display='block';
   window.onafterprint = () => { $('printArea').style.display='none'; window.onafterprint=null; };
@@ -1237,6 +1255,7 @@ function saveTotalDebtPay(idx){
   
   let amountToPay=+$('dtAmount').value||0;
   const date=$('dtDate').value||today();
+  const customerName = g.name;
   
   if(amountToPay<=0)return showToast('أدخل مبلغاً صحيحاً',true);
   if(amountToPay > g.total + 0.01) return showToast('المبلغ أكبر من إجمالي الدين!',true);
@@ -1265,7 +1284,14 @@ function saveTotalDebtPay(idx){
   
   autoCloseDay(date);
   persist();
-  closeModal();
+  
+  // Calculate new total remaining after the payment
+  let newTotalRemaining = 0;
+  S.wholesale.filter(x => (x.customer||'زبون').trim().toLowerCase() === customerName.trim().toLowerCase()).forEach(x => {
+     newTotalRemaining += calcInv(x).remaining;
+  });
+
+  showPaymentReceipt(customerName, (+$('dtAmount').value||0), newTotalRemaining, date);
   renderDebts();
   showToast('تم تسجيل وتوزيع الدفعة بنجاح ☁️');
 }
@@ -1291,13 +1317,46 @@ function openDebtPay(id){
 }
 
 function saveDebtPay(id){
+  const inv = S.wholesale.find(x=>x.id===id);
+  const customerName = inv ? inv.customer : 'زبون';
+  
   const amount=+$('dpAmount').value||0;
   const date=$('dpDate').value||today();
   if(amount<=0)return showToast('أدخل مبلغاً',true);
+  
   S.debtPayments.push({id:uid(),invoiceId:id,amount,date});
   
   autoCloseDay(date);
-  persist();closeModal();renderDebts();showToast('تم تسجيل الدفعة ☁️');
+  persist();
+  
+  let newTotalRemaining = 0;
+  S.wholesale.filter(x => (x.customer||'زبون').trim().toLowerCase() === customerName.trim().toLowerCase()).forEach(x => {
+     newTotalRemaining += calcInv(x).remaining;
+  });
+
+  showPaymentReceipt(customerName, amount, newTotalRemaining, date);
+  renderDebts();
+  showToast('تم تسجيل الدفعة ☁️');
+}
+
+function showPaymentReceipt(customerName, amountPaid, totalRemaining, date) {
+  const html = `
+    <div style="text-align:center; padding:15px; border:1px dashed var(--gold2); border-radius:10px; margin-bottom:15px; background:rgba(0,0,0,0.2)">
+       <h3 style="color:var(--gold2); margin-bottom:10px; font-size:18px;">وصل دفع</h3>
+       <div style="font-size:14px; margin-bottom:8px;">الزبون: <strong>${esc(customerName)}</strong></div>
+       <div style="font-size:14px; margin-bottom:8px;">التاريخ: ${fmtDate(date)}</div>
+       <hr style="border-color:var(--bsoft); margin:10px 0;">
+       <div style="font-size:16px; margin-bottom:8px;">المبلغ المدفوع: <strong style="color:#8ff5b0">${fmtUSD(amountPaid)}</strong></div>
+       <div style="font-size:16px; margin-bottom:8px;">الرصيد المتبقي: <strong style="color:#ff8a8a">${fmtUSD(totalRemaining)}</strong></div>
+       <hr style="border-color:var(--bsoft); margin:10px 0;">
+       <div style="font-size:12px; color:var(--muted);">شكراً لتعاملكم معنا</div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">إغلاق</button>
+      <button class="btn btn-gold" onclick="printReceipt('${esc(customerName)}', '${amountPaid}', '${totalRemaining}', '${date}')">🖨️ طباعة الوصل</button>
+    </div>
+  `;
+  openModal('تمت العملية بنجاح', html);
 }
 
 function sendCustomerDebtWA(idx){
@@ -1326,6 +1385,8 @@ function renderEmployees(){
     const deductions=monthNotes.filter(n=>n.type==='deduction').reduce((a,n)=>a+(+n.amount||0),0);
     const rem=Math.max(0,(+e.salary||0)+bonuses-deductions-monthWd);
 
+    const empWithdrawals = S.withdrawals.filter(w=>w.empId===e.id).sort((a,b)=>b.date.localeCompare(a.date));
+
     let notesHtml='';
     if(empNotes.length){
       const sorted=empNotes.slice().sort((a,b)=>b.date.localeCompare(a.date));
@@ -1339,6 +1400,23 @@ function renderEmployees(){
           <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
             ${n.type==='bonus'?`<span class="badge paid">+${fmtUSD(n.amount)}</span>`:n.type==='deduction'?`<span class="badge debt">-${fmtUSD(n.amount)}</span>`:''}
             <button class="btn-icon danger" onclick="delEmployeeNote('${n.id}')" title="حذف">×</button>
+          </div>
+        </div>`).join('')}
+      </div>`;
+    }
+
+    let withdrawalsHtml='';
+    if(empWithdrawals.length){
+      withdrawalsHtml=`<div style="margin-top:12px;padding:12px;background:rgba(0,0,0,0.25);border-radius:10px">
+        <div style="font-size:11px;color:#ff8a8a;margin-bottom:8px;font-weight:700">سجل السحوبات (${empWithdrawals.length}):</div>
+        ${empWithdrawals.map(w=>`<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:11.5px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.05)">
+          <div style="flex:1;min-width:0;word-wrap:break-word;white-space:pre-wrap;">
+            <span style="color:var(--muted)">📅 ${fmtDate(w.date)}</span>
+            <div style="margin-top:2px;color:var(--txt);">${esc(w.reason||'بدون تفاصيل')}</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+            <span class="badge debt">-${fmtUSD(w.amount)}</span>
+            <button class="btn-icon danger" onclick="delWithdrawal('${w.id}')" title="حذف">×</button>
           </div>
         </div>`).join('')}
       </div>`;
@@ -1360,6 +1438,7 @@ function renderEmployees(){
         <div class="emp-stat"><div class="emp-stat-label">متبقي (الشهر)</div><div class="emp-stat-value" style="color:#8ff5b0">${fmtUSD(rem)}</div></div>
       </div>
       ${notesHtml}
+      ${withdrawalsHtml}
     </div>`;
   });
   $('empList').innerHTML=h;
@@ -1388,18 +1467,30 @@ function delEmployee(id){
   }
 }
 function openWithdrawalModal(empId){
-  const html=`<div class="form-grid"><div class="field"><label>المبلغ</label><input type="number" id="wdAmount" value="0"></div><div class="field"><label>التاريخ</label><input type="date" id="wdDate" value="${today()}"></div></div>
+  const html=`<div class="form-grid">
+    <div class="field"><label>المبلغ</label><input type="number" id="wdAmount" value="0"></div>
+    <div class="field"><label>التاريخ</label><input type="date" id="wdDate" value="${today()}"></div>
+    <div class="field full"><label>تفاصيل السحب</label><textarea id="wdReason" placeholder="اكتب تفاصيل السحب هنا..." style="min-height:60px;"></textarea></div>
+  </div>
     <div class="modal-actions"><button class="btn btn-ghost" onclick="closeModal()">إلغاء</button><button class="btn btn-gold" onclick="saveWithdrawal('${empId}')">تأكيد</button></div>`;
   openModal('تسجيل سحب',html);
 }
 function saveWithdrawal(empId){
   const amount=+$('wdAmount').value||0;
-  if(amount<=0)return;
+  if(amount<=0)return showToast('أدخل مبلغاً',true);
   const date = $('wdDate').value||today();
-  S.withdrawals.push({id:uid(),empId,amount,date});
+  const reason = $('wdReason').value.trim();
+  S.withdrawals.push({id:uid(),empId,amount,reason,date});
   
   autoCloseDay(date);
   persist();closeModal();renderEmployees();showToast('تم السحب ☁️');
+}
+function delWithdrawal(id){
+  if(!confirm('حذف السحب؟'))return;
+  const w = S.withdrawals.find(x=>x.id===id);
+  S.withdrawals=S.withdrawals.filter(x=>x.id!==id);
+  if(w) autoCloseDay(w.date);
+  persist();renderEmployees();
 }
 function openEmployeeNoteModal(empId){
   const html=`
