@@ -8,7 +8,6 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
-<!-- Firebase SDK (Compat) -->
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 
@@ -100,6 +99,7 @@ body.light-mode .btn-icon{background:#eee;color:#333}
 .badge.part{background:rgba(255,180,50,0.15);color:#ffd68a;border:1px solid rgba(255,180,50,0.3)}
 .badge.debt{background:rgba(255,90,90,0.15);color:#ff8a8a;border:1px solid rgba(255,90,90,0.3)}
 .badge.cat{background:rgba(255,255,255,0.05);color:var(--muted);border:1px solid var(--bsoft)}
+.badge.role{background:rgba(90,156,255,0.15);color:#b8d4ff;border:1px solid rgba(90,156,255,0.3)}
 .charts-grid{display:grid;grid-template-columns:2fr 1fr;gap:18px;margin-bottom:22px}
 .chart-card{margin-bottom:0}
 .chart-wrap{position:relative;height:260px;width:100%}
@@ -166,6 +166,8 @@ body.light-mode .inv-input{background:#fff;color:#000;border-color:#ccc}
 .summary-row:last-child{border-bottom:none}
 .summary-row.total{font-weight:900;font-size:14px;color:var(--gold2);border-top:2px solid var(--bdr);margin-top:8px;padding-top:10px}
 
+body.role-staff .staff-hide{display:none!important}
+
 @media print {
   body * { visibility: hidden; }
   #printArea, #printArea * { visibility: visible; }
@@ -187,12 +189,10 @@ body.light-mode .inv-input{background:#fff;color:#000;border-color:#ccc}
   .charts-grid{grid-template-columns:1fr}
   .stat-card{padding:12px}
   .stat-value{font-size:18px}
-  .stat-value.small{font-size:15px}
   .card{padding:15px}
   .modal{padding:15px;width:95%}
   .btn{padding:10px 16px;font-size:12px}
   .btn-sm{padding:6px 10px;font-size:10px}
-  
   .data-table { table-layout: fixed; width: 100%; min-width: 0; }
   .data-table thead th { padding: 5px 2px; font-size: 9px; }
   .data-table tbody td { padding: 5px 2px; font-size: 11px; }
@@ -246,12 +246,12 @@ body.light-mode .inv-input{background:#fff;color:#000;border-color:#ccc}
   <div class="page-head"><div><h1>لوحة التحكم</h1><p class="muted">نظرة شاملة على أداء المتجر</p></div><div class="date-badge" id="dashDate"></div></div>
   <div class="stats-grid">
     <div class="stat-card gold"><div class="stat-label">مبيعات اليوم</div><div class="stat-value" id="dSalesToday">$0</div></div>
-    <div class="stat-card green"><div class="stat-label">ربح اليوم</div><div class="stat-value green" id="dProfitToday">$0</div></div>
-    <div class="stat-card"><div class="stat-label">صافي ربح الشهر</div><div class="stat-value" id="dProfitMonth">$0</div></div>
+    <div class="stat-card green staff-hide"><div class="stat-label">ربح اليوم</div><div class="stat-value green" id="dProfitToday">$0</div></div>
+    <div class="stat-card staff-hide"><div class="stat-label">صافي ربح الشهر</div><div class="stat-value" id="dProfitMonth">$0</div></div>
     <div class="stat-card red"><div class="stat-label">الديون المستحقة</div><div class="stat-value red" id="dDebts">$0</div></div>
   </div>
   <div class="charts-grid">
-    <div class="card chart-card"><h3>الأرباح آخر 7 أيام</h3><div class="chart-wrap"><canvas id="profitChart"></canvas></div></div>
+    <div class="card chart-card"><h3 id="profitChartTitle">الأرباح آخر 7 أيام</h3><div class="chart-wrap"><canvas id="profitChart"></canvas></div></div>
     <div class="card chart-card"><h3>توزيع المبيعات</h3><div class="chart-wrap"><canvas id="salesChart"></canvas></div></div>
   </div>
 </section>
@@ -272,8 +272,8 @@ body.light-mode .inv-input{background:#fff;color:#000;border-color:#ccc}
   <div class="page-head">
     <div><h1>المفرق</h1><p class="muted">Fayrouza scarves</p></div>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
-      <button class="btn btn-ghost" onclick="openReturnModal()">↩ مرتجع</button>
-      <button class="btn btn-gold" onclick="openRetailModal()">+ تسجيل بيع</button>
+      <button class="btn btn-ghost staff-hide" onclick="openReturnModal()">↩ مرتجع</button>
+      <button class="btn btn-gold staff-hide" onclick="openRetailModal()">+ تسجيل بيع</button>
     </div>
   </div>
   <div class="stats-grid" id="rtStats"></div>
@@ -331,8 +331,7 @@ body.light-mode .inv-input{background:#fff;color:#000;border-color:#ccc}
       <div class="field"><label>&nbsp;</label><button class="btn btn-ghost" onclick="generateReport()">تحديث</button></div>
     </div>
   </div>
-  
-  <!-- حاوية التقرير لتصديرها كصورة -->
+
   <div id="reportCaptureArea" style="background:var(--bg); padding:10px; border-radius:12px;">
     <div style="text-align:center; margin-bottom:15px; display:none;" id="reportPrintHeader">
       <h2 id="repPrintTitle" style="color:var(--gold2); font-size:20px;"></h2>
@@ -353,7 +352,8 @@ body.light-mode .inv-input{background:#fff;color:#000;border-color:#ccc}
       <div class="field"><label>اسم الجملة</label><input type="text" id="setWholesaleName"></div>
       <div class="field"><label>سعر الصرف (ل.ل)</label><input type="number" id="setRate"></div>
       <div class="field"><label>رقم الواتساب (للمتجر)</label><input type="text" id="setWa" placeholder="81439656"></div>
-      <div class="field"><label>رمز PIN (4 أرقام - اتركه فارغاً للإلغاء)</label><input type="text" id="setPin" maxlength="4" placeholder="0000"></div>
+      <div class="field"><label>رمز PIN للمدير (4 أرقام - فارغ للإلغاء)</label><input type="text" id="setPin" maxlength="4" placeholder="0000"></div>
+      <div class="field"><label>رمز PIN للموظف (4 أرقام - فارغ لتعطيل الحساب)</label><input type="text" id="setStaffPin" maxlength="4" placeholder="0000"></div>
       <div class="field full"><button class="btn btn-gold" onclick="saveSettings()">حفظ الإعدادات</button></div>
     </div>
   </div>
@@ -403,7 +403,7 @@ const docRef = db.collection('stores').doc('fayrouza_main');
 const PFX='fayrouza_';
 const store={get(k,d){try{const v=localStorage.getItem(PFX+k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem(PFX+k,JSON.stringify(v))}catch(e){}}};
 let S={
-  settings:store.get('settings',{retailName:'Fayrouza scarves',wholesaleName:'Fayrouza ALherz',rate:89000,wa:'81439656',pin:''}),
+  settings:store.get('settings',{retailName:'Fayrouza scarves',wholesaleName:'Fayrouza ALherz',rate:89000,wa:'81439656',pin:'',staffPin:''}),
   wholesale:store.get('wholesale',[]),
   retail:store.get('retail',[]),
   expenses:store.get('expenses',[]),
@@ -416,6 +416,11 @@ let S={
   debtPayments:store.get('debtPayments',[]),
   returns:store.get('returns',[])
 };
+if(!S.settings.staffPin) S.settings.staffPin = '';
+
+/* ===== Roles ===== */
+let currentRole = 'admin';
+const STAFF_ALLOWED_PAGES = ['dashboard','retail','debts','loyalty'];
 
 /* =========================================
    2. CLOUD SYNC & PERSISTENCE
@@ -465,17 +470,51 @@ function setupPin(){
   document.querySelectorAll('#pinPad button').forEach(b=>{
     b.onclick=()=>{
       const k=b.dataset.k;
-      if(k==='del')pinBuf=pinBuf.slice(0,-1);
+      if(k==='del') pinBuf=pinBuf.slice(0,-1);
       else if(k==='ok'){
-        if(pinBuf===S.settings.pin){$('pinLock').classList.remove('show');pinBuf='';updatePinDisplay();renderPage('dashboard');}
-        else{showToast('رمز خاطئ',true);pinBuf='';updatePinDisplay();}
+        const adminPin = (S.settings.pin||'').trim();
+        const staffPin = (S.settings.staffPin||'').trim();
+
+        if(adminPin && pinBuf===adminPin){
+          unlockAs('admin');
+        } else if(staffPin && pinBuf===staffPin){
+          unlockAs('staff');
+        } else if(!adminPin && !staffPin){
+          unlockAs('admin');
+        } else {
+          showToast('رمز خاطئ',true);
+          pinBuf='';updatePinDisplay();
+        }
       }
-      else if(pinBuf.length<4)pinBuf+=k;
+      else if(pinBuf.length<4) pinBuf+=k;
       updatePinDisplay();
     };
   });
 }
 function updatePinDisplay(){$('pinDisplay').textContent=pinBuf.padEnd(4,'-').split('').join(' ')}
+function unlockAs(role){
+  currentRole = role;
+  document.body.classList.toggle('role-staff', role==='staff');
+  $('pinLock').classList.remove('show');
+  pinBuf='';updatePinDisplay();
+  applyRole();
+  renderPage('dashboard');
+}
+function applyRole(){
+  document.querySelectorAll('.nav-item').forEach(btn=>{
+    const page = btn.dataset.page;
+    btn.style.display = (currentRole==='staff' && !STAFF_ALLOWED_PAGES.includes(page)) ? 'none' : '';
+  });
+  const activePage = document.querySelector('.nav-item.active')?.dataset.page;
+  if(currentRole==='staff' && activePage && !STAFF_ALLOWED_PAGES.includes(activePage)){
+    document.querySelectorAll('.nav-item').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+    const dbBtn = document.querySelector('.nav-item[data-page="dashboard"]');
+    if(dbBtn) dbBtn.classList.add('active');
+    $('page-dashboard').classList.add('active');
+    renderPage('dashboard');
+  }
+}
 
 /* ===== Calc ===== */
 function calcInv(inv){
@@ -507,46 +546,38 @@ function computeDaySummary(d){
   let salesW=0,profitW=0,salesR=0,profitR=0,newDebts=0;
   S.wholesale.filter(i=>i.date===d).forEach(inv=>{const c=calcInv(inv);salesW+=c.total;profitW+=c.profit;newDebts+=c.remaining;});
   S.retail.filter(s=>s.date===d).forEach(s=>{const c=calcRetail(s);salesR+=c.total;profitR+=c.profit;});
-  
-  // فصل المصاريف
+
   let expStore = 0, expPersonal = 0;
   S.expenses.filter(e=>e.date===d).forEach(e => {
     if(e.type === 'personal') expPersonal += (+e.amount||0);
     else expStore += (+e.amount||0);
   });
-  
+
   const totalExpenses = expStore + expPersonal;
   const returns = S.returns.filter(r=>r.date===d).reduce((a,r)=>a+(+r.total||0),0);
   const debtPays = S.debtPayments.filter(p=>p.date===d).reduce((a,p)=>a+(+p.amount||0),0);
 
-  // صافي الكاش يخصم كل شيء (لأن الفلوس خرجت من الدرج)
   const cashIn = salesW + salesR + debtPays - totalExpenses - returns;
-  
-  // صافي الربح يخصم مصاريف المحل فقط (المصاريف الشخصية لا تعتبر خسارة للمحل)
   const netProfit = profitW + profitR - expStore - returns;
 
   return {
-    salesW, salesR, profitW, profitR, newDebts, 
-    expenses: totalExpenses, 
-    expensesStore: expStore, 
+    salesW, salesR, profitW, profitR, newDebts,
+    expenses: totalExpenses,
+    expensesStore: expStore,
     expensesPersonal: expPersonal,
     returns, debtPays, cashIn, netProfit,
     totalSales: salesW + salesR - returns
   };
 }
 
-/* ===== Auto Close Day (Backdating / Editing) ===== */
 function autoCloseDay(dateStr){
-  if(!dateStr || dateStr === today()) return; // لا تغلق إذا كان تاريخ اليوم
-  
+  if(!dateStr || dateStr === today()) return;
   const summary = computeDaySummary(dateStr);
   const existingIndex = S.closedDays.findIndex(c => c.date === dateStr);
-  
   if(existingIndex >= 0){
     S.closedDays[existingIndex].summary = summary;
     S.closedDays[existingIndex].closedAt = new Date().toISOString();
   } else {
-    // إذا تم التعديل على يوم قديم غير مسكر، نسجله في الأرشيف
     S.closedDays.push({date: dateStr, closedAt: new Date().toISOString(), summary});
   }
   persist();
@@ -555,11 +586,13 @@ function autoCloseDay(dateStr){
 /* ===== Navigation ===== */
 document.querySelectorAll('.nav-item').forEach(btn=>{
   btn.onclick=()=>{
+    const page = btn.dataset.page;
+    if(currentRole==='staff' && !STAFF_ALLOWED_PAGES.includes(page)) return;
     document.querySelectorAll('.nav-item').forEach(b=>b.classList.remove('active'));
     btn.classList.add('active');
     document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-    $('page-'+btn.dataset.page).classList.add('active');
-    renderPage(btn.dataset.page);
+    $('page-'+page).classList.add('active');
+    renderPage(page);
   };
 });
 function renderPage(name){
@@ -599,10 +632,13 @@ function renderDashboard(){
     const d=new Date();d.setDate(d.getDate()-i);const ds=d.toISOString().slice(0,10);
     labels.push(d.toLocaleDateString('ar-EG',{weekday:'short'}));
     const s=computeDaySummary(ds);
-    dataP.push(s.netProfit);
+    dataP.push(currentRole === 'staff' ? s.totalSales : s.netProfit);
   }
   if(chartP)chartP.destroy();
   chartP=new Chart($('profitChart'),{type:'line',data:{labels,datasets:[{data:dataP,borderColor:'#d4af37',backgroundColor:'rgba(212,175,55,0.15)',fill:true,tension:.4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}}});
+
+  const titleEl = $('profitChartTitle');
+  if(titleEl) titleEl.textContent = currentRole==='staff' ? 'المبيعات آخر 7 أيام' : 'الأرباح آخر 7 أيام';
 
   let whM=0,rtM=0;
   S.wholesale.filter(i=>i.date.startsWith(month)).forEach(inv=>whM+=calcInv(inv).total);
@@ -616,14 +652,14 @@ function renderWholesale(){
   let total=0,profit=0,debts=0;
   S.wholesale.forEach(inv=>{const c=calcInv(inv);total+=c.total;profit+=c.profit;debts+=c.remaining});
   const collections = total - debts;
-  
+
   $('whStats').innerHTML=`
     <div class="stat-card"><div class="stat-label">الفواتير</div><div class="stat-value">${S.wholesale.length}</div></div>
     <div class="stat-card gold"><div class="stat-label">المبيعات</div><div class="stat-value">${fmtUSD(total)}</div></div>
     <div class="stat-card blue"><div class="stat-label">المقبوضات</div><div class="stat-value blue">${fmtUSD(collections)}</div></div>
     <div class="stat-card green"><div class="stat-label">الأرباح</div><div class="stat-value green">${fmtUSD(profit)}</div></div>
     <div class="stat-card red"><div class="stat-label">الديون</div><div class="stat-value red">${fmtUSD(debts)}</div></div>`;
-    
+
   const filter=document.querySelector('#whFilter button.active')?.dataset.f||'all';
   const search=($('whSearch').value||'').toLowerCase().trim();
   let filtered=S.wholesale.filter(inv=>{
@@ -641,9 +677,9 @@ function renderWholesale(){
       <td>${esc(inv.invoiceNo)}</td><td>${esc(inv.customer)}</td>
       <td class="${c.remaining>0.01?'neg':'pos'}">${fmtUSD(c.remaining)}</td>
       <td class="acts">
-        <button class="btn-icon" onclick="openInvoiceModal('${inv.id}')" title="تعديل">✎</button>
+        <button class="btn-icon staff-hide" onclick="openInvoiceModal('${inv.id}')" title="تعديل">✎</button>
         <button class="btn-icon" onclick="printInvoice('${inv.id}')" title="طباعة حرارية">🖨️</button>
-        <button class="btn-icon danger" onclick="delInv('${inv.id}')" title="حذف">×</button>
+        <button class="btn-icon danger staff-hide" onclick="delInv('${inv.id}')" title="حذف">×</button>
       </td></tr>`;
   });
   $('whTable').innerHTML=h+'</tbody>';
@@ -698,7 +734,6 @@ function addQuickProduct(pid, type){
   }
 }
 
-/* ===== Custom Function for Parsing Cost Shortcode ===== */
 function parseCostInput(inputElement) {
   let val = inputElement.value.trim();
   if (!val) {
@@ -706,24 +741,18 @@ function parseCostInput(inputElement) {
     recalcInv();
     return;
   }
-  
   let finalCost = 0;
-  
-  // 1. يبدأ بحرف A (مثال: A10 -> 10)
   if (/^[aA]\d+(\.\d+)?$/.test(val)) {
     finalCost = parseFloat(val.substring(1)) || 0;
-  } 
-  // 2. يبدأ بـ 1 ويتكون من 4 أرقام (مثال: 1250 -> 2.50)
+  }
   else if (/^1\d{3}$/.test(val)) {
     const dollars = val.substring(1, val.length - 2);
     const cents = val.substring(val.length - 2);
     finalCost = parseFloat(dollars + '.' + cents) || 0;
-  } 
-  // 3. رقم عادي
+  }
   else {
     finalCost = parseFloat(val) || 0;
   }
-  
   inputElement.value = finalCost.toFixed(2);
   recalcInv();
 }
@@ -738,15 +767,15 @@ function addInvRow(it){
     <td><input class="inv-input it-price" type="number" step="0.01" value="${it.price}"></td>
     <td><button class="btn-icon danger" onclick="this.closest('tr').remove();recalcInv()">×</button></td>`;
   $('invItems').appendChild(tr);
-  
+
   tr.querySelector('.it-name').oninput = recalcInv;
   tr.querySelector('.it-qty').oninput = recalcInv;
   tr.querySelector('.it-price').oninput = recalcInv;
-  
+
   const costInput = tr.querySelector('.it-cost');
   costInput.oninput = recalcInv;
   costInput.onblur = function() { parseCostInput(this); };
-  
+
   recalcInv();
 }
 
@@ -777,18 +806,18 @@ function saveInvoice(id,isEdit){
   });
   if(!items.length)return showToast('أضف منتجاً',true);
   const inv={id,invoiceNo:$('invNo').value.trim(),customer:$('invCustomer').value.trim()||'زبون',phone:$('invPhone').value.trim(),date:$('invDate').value,items,discount:+$('invDiscount').value||0,paid:+$('invPaid').value||0,notes:$('invNotes').value.trim()};
-  
+
   const oldInv = S.wholesale.find(x=>x.id===id);
   const oldDate = oldInv ? oldInv.date : null;
 
   const i=S.wholesale.findIndex(x=>x.id===id);
   if(i>=0)S.wholesale[i]=inv;else S.wholesale.push(inv);
-  
+
   if(oldDate && oldDate !== inv.date) autoCloseDay(oldDate);
   autoCloseDay(inv.date);
-  
+
   persist();closeModal();showToast('تم الحفظ ☁️');
-  
+
   const activePage = document.querySelector('.nav-item.active')?.dataset.page;
   if(activePage === 'reports') generateReport();
   else if(activePage === 'wholesale') renderWholesale();
@@ -800,9 +829,7 @@ function delInv(id){
   const inv = S.wholesale.find(x=>x.id===id);
   S.wholesale=S.wholesale.filter(x=>x.id!==id);
   S.debtPayments=S.debtPayments.filter(p=>p.invoiceId!==id);
-  
   if(inv) autoCloseDay(inv.date);
-  
   persist();renderWholesale();
 }
 
@@ -815,7 +842,7 @@ function renderRetail(){
   $('rtStats').innerHTML=`
     <div class="stat-card"><div class="stat-label">عمليات اليوم</div><div class="stat-value">${S.retail.filter(s=>s.date===tdy).length}</div></div>
     <div class="stat-card gold"><div class="stat-label">مبيعات اليوم</div><div class="stat-value">${fmtUSD(total)}</div></div>
-    <div class="stat-card green"><div class="stat-label">ربح اليوم</div><div class="stat-value green">${fmtUSD(profit)}</div></div>
+    <div class="stat-card green staff-hide"><div class="stat-label">ربح اليوم</div><div class="stat-value green">${fmtUSD(profit)}</div></div>
     <div class="stat-card red"><div class="stat-label">مرتجعات اليوم</div><div class="stat-value red">${fmtUSD(retT)}</div></div>`;
   const list=S.retail.filter(s=>s.date===tdy).sort((a,b)=>b.id.localeCompare(a.id));
 
@@ -826,14 +853,13 @@ function renderRetail(){
     h+=`<tr>
       <td>${s.items.map(i=>esc(i.name)).join(', ')}</td><td>${fmtUSD(c.total)}</td>
       <td class="acts">
-        <button class="btn-icon" onclick="openRetailModal('${s.id}')">✎</button>
+        <button class="btn-icon staff-hide" onclick="openRetailModal('${s.id}')">✎</button>
         <button class="btn-icon" onclick="printRetail('${s.id}')" title="طباعة حرارية">🖨️</button>
-        <button class="btn-icon danger" onclick="delRetail('${s.id}')">×</button>
+        <button class="btn-icon danger staff-hide" onclick="delRetail('${s.id}')">×</button>
       </td></tr>`;
   });
   $('rtTable').innerHTML=h+'</tbody>';
 
-  // Returns table
   const rets=S.returns.slice().sort((a,b)=>b.date.localeCompare(a.date));
   let rh='<thead><tr><th style="width:25%">التاريخ</th><th style="width:25%">المبلغ</th><th style="width:35%">السبب</th><th style="width:15%"></th></tr></thead><tbody>';
   if(!rets.length) rh+='<tr><td colspan="4" class="empty">لا مرتجعات</td></tr>';
@@ -842,7 +868,7 @@ function renderRetail(){
       <td>${fmtDate(r.date)}</td>
       <td class="neg">${fmtUSD(r.total)}</td>
       <td>${esc(r.reason||'-')}</td>
-      <td><button class="btn-icon danger" onclick="delReturn('${r.id}')">×</button></td>
+      <td><button class="btn-icon danger staff-hide" onclick="delReturn('${r.id}')">×</button></td>
     </tr>`;
   });
   $('rtReturnsTable').innerHTML=rh+'</tbody>';
@@ -886,18 +912,18 @@ function saveRetail(id){
   });
   if(!items.length)return showToast('أضف منتجاً',true);
   const sale={id,date:$('rtDate').value,items};
-  
+
   const oldSale = S.retail.find(x=>x.id===id);
   const oldDate = oldSale ? oldSale.date : null;
 
   const i=S.retail.findIndex(x=>x.id===id);
   if(i>=0)S.retail[i]=sale;else S.retail.push(sale);
-  
+
   if(oldDate && oldDate !== sale.date) autoCloseDay(oldDate);
   autoCloseDay(sale.date);
-  
+
   persist();closeModal();showToast('تم الحفظ ☁️');
-  
+
   const activePage = document.querySelector('.nav-item.active')?.dataset.page;
   if(activePage === 'reports') generateReport();
   else if(activePage === 'retail') renderRetail();
@@ -907,9 +933,7 @@ function delRetail(id){
   if(!confirm('حذف البيع؟'))return;
   const sale = S.retail.find(x=>x.id===id);
   S.retail=S.retail.filter(x=>x.id!==id);
-  
   if(sale) autoCloseDay(sale.date);
-  
   persist();renderRetail();
 }
 
@@ -929,22 +953,18 @@ function saveReturn(){
   if(amt<=0)return showToast('أدخل مبلغاً',true);
   const date = $('retDate').value || today();
   S.returns.push({id:uid(),date:date,total:amt,reason:$('retReason').value.trim()});
-  
   autoCloseDay(date);
-  
   persist();closeModal();renderRetail();showToast('تم تسجيل المرتجع ☁️');
 }
 function delReturn(id){
   if(!confirm('حذف المرتجع؟'))return;
   const ret = S.returns.find(x=>x.id===id);
   S.returns=S.returns.filter(x=>x.id!==id);
-  
   if(ret) autoCloseDay(ret.date);
-  
   persist();renderRetail();
 }
 
-/* ===== Printing (80mm Thermal) ===== */
+/* ===== Printing ===== */
 function printInvoice(id){
   const inv=S.wholesale.find(x=>x.id===id);if(!inv)return;
   const c=calcInv(inv);
@@ -1075,12 +1095,15 @@ function renderLoyalty(){
       <div style="font-size:24px;font-weight:900;color:var(--gold);margin:10px 0">${card.points} / 10</div>
       <div style="font-size:11px;color:var(--muted);margin-bottom:15px">${card.points>=5?'مؤهلة لخصم 35%':'تتطلب '+(5-card.points)+' نقاط للخصم'}</div>
       <div style="display:flex;gap:5px;justify-content:center;flex-wrap:wrap">
-        <button class="btn-icon" onclick="changePoints('${card.id}',-1)">-</button>
-        <button class="btn-icon" onclick="changePoints('${card.id}',1)">+</button>
+        <button class="btn-icon staff-hide" onclick="changePoints('${card.id}',-1)">-</button>
+        <button class="btn-icon staff-hide" onclick="changePoints('${card.id}',1)">+</button>
         <button class="btn btn-gold btn-sm" onclick="downloadLoyaltyCard('${card.id}')">📥 تحميل</button>
         <button class="wa-btn" onclick="sendLoyaltyWA('${card.id}')">💬 واتساب</button>
       </div>
-      <div style="margin-top:10px"><button class="btn-icon" onclick="openLoyaltyModal('${card.id}')">✎</button><button class="btn-icon danger" onclick="delLoyalty('${card.id}')">×</button></div>
+      <div style="margin-top:10px">
+        <button class="btn-icon staff-hide" onclick="openLoyaltyModal('${card.id}')">✎</button>
+        <button class="btn-icon danger staff-hide" onclick="delLoyalty('${card.id}')">×</button>
+      </div>
     </div>`;
   });
   $('loyaltyList').innerHTML=h;
@@ -1154,7 +1177,7 @@ function downloadLoyaltyCard(id){
   });
 }
 
-/* ===== Debts (grouped by customer) ===== */
+/* ===== Debts ===== */
 let _debtGroupsCache=[];
 function renderDebts(){
   const groups={};
@@ -1219,9 +1242,10 @@ function openCustomerDebts(idx){
       </div>
       ${payments.length?`<div style="background:rgba(0,0,0,0.3);padding:10px;border-radius:8px;margin-bottom:10px">
         <div style="font-size:11px;color:var(--gold2);margin-bottom:6px">سجل الدفعات:</div>
-        ${payments.map(p=>`<div style="display:flex;justify-content:space-between;font-size:11px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.05)">
+        ${payments.map(p=>`<div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.05);gap:6px">
           <span>📅 ${fmtDate(p.date)}</span>
           <span style="color:#8ff5b0">${fmtUSD(p.amount)}</span>
+          <button class="btn-icon staff-hide" onclick="openEditDebtPayment('${p.id}')" title="تعديل">✎</button>
         </div>`).join('')}
       </div>`:`<div style="font-size:11px;color:var(--muted);margin-bottom:10px">لا دفعات مسجلة بعد</div>`}
       <button class="btn btn-sm btn-ghost" onclick="closeModal();openDebtPay('${inv.id}')">+ تسجيل دفعة لهذه الفاتورة فقط</button>
@@ -1231,10 +1255,69 @@ function openCustomerDebts(idx){
   openModal(`ديون: ${esc(g.name)}`, h);
 }
 
+function openEditDebtPayment(paymentId){
+  const p = S.debtPayments.find(x=>x.id===paymentId);
+  if(!p) return showToast('الدفعة غير موجودة',true);
+  const inv = S.wholesale.find(x=>x.id===p.invoiceId);
+  if(!inv) return showToast('الفاتورة غير موجودة',true);
+  const c = calcInv(inv);
+  const maxAllowed = c.remaining + (+p.amount||0);
+
+  const html = `
+    <div style="padding:12px;border-radius:10px;background:rgba(0,0,0,0.3);margin-bottom:16px">
+      <div class="summary-row"><span>الفاتورة</span><strong>#${esc(inv.invoiceNo)}</strong></div>
+      <div class="summary-row"><span>الزبون</span><strong>${esc(inv.customer)}</strong></div>
+      <div class="summary-row total"><span>المتبقي الحالي</span><strong style="color:#ff8a8a">${fmtUSD(c.remaining)}</strong></div>
+    </div>
+    <div class="form-grid">
+      <div class="field"><label>المبلغ ($)</label><input type="number" id="epAmount" step="0.01" max="${maxAllowed.toFixed(2)}" value="${(+p.amount).toFixed(2)}"></div>
+      <div class="field"><label>التاريخ</label><input type="date" id="epDate" value="${p.date}"></div>
+      <div class="field full" style="font-size:10px;color:var(--muted)">الحد الأقصى: ${fmtUSD(maxAllowed)} (المتبقي + قيمة الدفعة الحالية)</div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal();openCustomerDebts(${_debtGroupsCache.findIndex(g => (g.name||'').trim().toLowerCase() === (inv.customer||'زبون').trim().toLowerCase())})">رجوع</button>
+      <button class="btn btn-gold" onclick="saveEditDebtPayment('${paymentId}')">حفظ التعديل</button>
+    </div>`;
+  openModal('تعديل دفعة', html);
+}
+
+function saveEditDebtPayment(paymentId){
+  const p = S.debtPayments.find(x=>x.id===paymentId);
+  if(!p) return;
+  const newAmount = +$('epAmount').value||0;
+  const newDate = $('epDate').value || today();
+  if(newAmount<=0) return showToast('أدخل مبلغاً صحيحاً',true);
+
+  const inv = S.wholesale.find(x=>x.id===p.invoiceId);
+  if(inv){
+    const c = calcInv(inv);
+    const maxAllowed = c.remaining + (+p.amount||0);
+    if(newAmount > maxAllowed + 0.01)
+      return showToast('المبلغ يتجاوز المتبقي على الفاتورة',true);
+  }
+  const customerName = inv ? (inv.customer||'زبون') : '';
+  const oldDate = p.date;
+
+  p.amount = newAmount;
+  p.date   = newDate;
+
+  if(oldDate !== newDate) autoCloseDay(oldDate);
+  autoCloseDay(newDate);
+
+  persist();
+  closeModal();
+  renderDebts();
+  const newIdx = _debtGroupsCache.findIndex(
+    g => (g.name||'').trim().toLowerCase() === customerName.trim().toLowerCase()
+  );
+  if(newIdx >= 0) openCustomerDebts(newIdx);
+  showToast('تم تعديل الدفعة ☁️');
+}
+
 function openTotalDebtPay(idx){
   const g=_debtGroupsCache[idx];
   if(!g)return;
-  
+
   const html=`
     <div style="padding:12px;border-radius:10px;background:rgba(0,0,0,0.3);margin-bottom:16px;text-align:center">
       <div style="font-size:12px;color:var(--muted);margin-bottom:4px">إجمالي ديون الزبون: ${esc(g.name)}</div>
@@ -1252,11 +1335,12 @@ function openTotalDebtPay(idx){
 function saveTotalDebtPay(idx){
   const g=_debtGroupsCache[idx];
   if(!g)return;
-  
+
   let amountToPay=+$('dtAmount').value||0;
   const date=$('dtDate').value||today();
   const customerName = g.name;
-  
+  const originalAmount = amountToPay;
+
   if(amountToPay<=0)return showToast('أدخل مبلغاً صحيحاً',true);
   if(amountToPay > g.total + 0.01) return showToast('المبلغ أكبر من إجمالي الدين!',true);
 
@@ -1267,10 +1351,8 @@ function saveTotalDebtPay(idx){
 
   for(let item of sortedInvoices){
     if(amountToPay <= 0) break;
-    
     const invRemaining = item.c.remaining;
     const payForThis = Math.min(amountToPay, invRemaining);
-
     if(payForThis > 0){
       S.debtPayments.push({
         id: uid(),
@@ -1281,17 +1363,16 @@ function saveTotalDebtPay(idx){
       amountToPay -= payForThis;
     }
   }
-  
+
   autoCloseDay(date);
   persist();
-  
-  // Calculate new total remaining after the payment
+
   let newTotalRemaining = 0;
   S.wholesale.filter(x => (x.customer||'زبون').trim().toLowerCase() === customerName.trim().toLowerCase()).forEach(x => {
      newTotalRemaining += calcInv(x).remaining;
   });
 
-  showPaymentReceipt(customerName, (+$('dtAmount').value||0), newTotalRemaining, date);
+  showPaymentReceipt(customerName, originalAmount, newTotalRemaining, date);
   renderDebts();
   showToast('تم تسجيل وتوزيع الدفعة بنجاح ☁️');
 }
@@ -1319,16 +1400,16 @@ function openDebtPay(id){
 function saveDebtPay(id){
   const inv = S.wholesale.find(x=>x.id===id);
   const customerName = inv ? inv.customer : 'زبون';
-  
+
   const amount=+$('dpAmount').value||0;
   const date=$('dpDate').value||today();
   if(amount<=0)return showToast('أدخل مبلغاً',true);
-  
+
   S.debtPayments.push({id:uid(),invoiceId:id,amount,date});
-  
+
   autoCloseDay(date);
   persist();
-  
+
   let newTotalRemaining = 0;
   S.wholesale.filter(x => (x.customer||'زبون').trim().toLowerCase() === customerName.trim().toLowerCase()).forEach(x => {
      newTotalRemaining += calcInv(x).remaining;
@@ -1481,7 +1562,6 @@ function saveWithdrawal(empId){
   const date = $('wdDate').value||today();
   const reason = $('wdReason').value.trim();
   S.withdrawals.push({id:uid(),empId,amount,reason,date});
-  
   autoCloseDay(date);
   persist();closeModal();renderEmployees();showToast('تم السحب ☁️');
 }
@@ -1567,7 +1647,6 @@ function saveExpense(){
   const note = $('exNote').value.trim();
   const date = $('exDate').value||today();
   S.expenses.push({id:uid(),amount:amt,type,note,date});
-  
   autoCloseDay(date);
   persist();closeModal();renderExpenses();showToast('تم الحفظ ☁️');
 }
@@ -1640,184 +1719,209 @@ function generateReport(){
     const collections = totalW - newDebts;
     const debtPayTotal = S.debtPayments.filter(p=>p.date>=from && p.date<=to).reduce((a,p)=>a+(+p.amount||0),0);
 
-    $('repStats').innerHTML=`
-      <div class="stat-card gold"><div class="stat-label">المبيعات</div><div class="stat-value">${fmtUSD(totalW)}</div></div>
-      <div class="stat-card blue"><div class="stat-label">المقبوضات</div><div class="stat-value blue">${fmtUSD(collections)}</div></div>
+    $('repStats').innerHTML = `
+      <div class="stat-card"><div class="stat-label">عدد الفواتير</div><div class="stat-value">${invs.length}</div></div>
+      <div class="stat-card gold"><div class="stat-label">إجمالي المبيعات</div><div class="stat-value">${fmtUSD(totalW)}</div></div>
+      <div class="stat-card blue"><div class="stat-label">المقبوضات (فواتير)</div><div class="stat-value blue">${fmtUSD(collections)}</div></div>
+      <div class="stat-card green"><div class="stat-label">تحصيل ديون</div><div class="stat-value green">${fmtUSD(debtPayTotal)}</div></div>
       <div class="stat-card green"><div class="stat-label">الأرباح</div><div class="stat-value green">${fmtUSD(profitW)}</div></div>
-      <div class="stat-card red"><div class="stat-label">الديون الجديدة</div><div class="stat-value red">${fmtUSD(newDebts)}</div></div>
-      <div class="stat-card"><div class="stat-label">تحصيل ديون بالفترة</div><div class="stat-value">${fmtUSD(debtPayTotal)}</div></div>`;
+      <div class="stat-card red"><div class="stat-label">ديون جديدة</div><div class="stat-value red">${fmtUSD(newDebts)}</div></div>`;
 
-    let tableH = '<thead><tr><th>رقم الفاتورة</th><th>التاريخ</th><th>الزبون</th><th>الإجمالي</th><th>المدفوع</th><th>المتبقي</th><th>الربح</th><th>إجراءات</th></tr></thead><tbody>';
-    if(!invs.length) tableH += '<tr><td colspan="8" class="empty">لا فواتير في هذه الفترة</td></tr>';
-    else invs.sort((a,b)=>b.date.localeCompare(a.date)).forEach(inv => {
+    const dayMap = {};
+    for (let d = new Date(from); d <= new Date(to); d.setDate(d.getDate()+1)) {
+      dayMap[d.toISOString().slice(0,10)] = {sales:0, profit:0};
+    }
+    invs.forEach(inv => {
       const c = calcInv(inv);
-      tableH += `<tr>
+      if(dayMap[inv.date]) { dayMap[inv.date].sales += c.total; dayMap[inv.date].profit += c.profit; }
+    });
+    const labels = Object.keys(dayMap).map(d => fmtDate(d));
+    const salesData = Object.values(dayMap).map(x => x.sales);
+    const profitData = Object.values(dayMap).map(x => x.profit);
+
+    if(chartR) chartR.destroy();
+    chartR = new Chart($('repChart'), {
+      type: 'bar',
+      data: { labels, datasets: [
+        {label:'مبيعات', data: salesData, backgroundColor:'rgba(212,175,55,0.6)'},
+        {label:'أرباح', data: profitData, backgroundColor:'rgba(46,204,113,0.6)'}
+      ]},
+      options:{responsive:true,maintainAspectRatio:false}
+    });
+
+    let h='<thead><tr><th>رقم</th><th>الزبون</th><th>التاريخ</th><th>الإجمالي</th><th>المدفوع</th><th>المتبقي</th><th>الربح</th></tr></thead><tbody>';
+    if(!invs.length) h+='<tr><td colspan="7" class="empty">لا فواتير</td></tr>';
+    else invs.slice().sort((a,b)=>b.date.localeCompare(a.date)).forEach(inv=>{
+      const c = calcInv(inv);
+      h+=`<tr>
         <td>${esc(inv.invoiceNo)}</td>
-        <td>${fmtDate(inv.date)}</td>
         <td>${esc(inv.customer)}</td>
+        <td>${fmtDate(inv.date)}</td>
         <td>${fmtUSD(c.total)}</td>
         <td class="pos">${fmtUSD(c.totalPaid)}</td>
         <td class="${c.remaining>0.01?'neg':'pos'}">${fmtUSD(c.remaining)}</td>
-        <td class="${c.profit<0?'neg':'pos'}">${fmtUSD(c.profit)}</td>
-        <td><button class="btn-icon" onclick="openInvoiceModal('${inv.id}')" title="تعديل">✎</button></td>
+        <td class="pos">${fmtUSD(c.profit)}</td>
       </tr>`;
     });
-    $('repTable').innerHTML = tableH + '</tbody>';
-
-    // Chart logic
-    const dayLabels=[],dayProfit=[];
-    const start=new Date(from+'T00:00:00'); const end=new Date(to+'T00:00:00'); const tmp=new Date(start); let safety=0;
-    while(tmp<=end&&safety<366){
-      const ds=tmp.toISOString().slice(0,10);
-      let p=0; S.wholesale.filter(i=>i.date===ds).forEach(inv=>p+=calcInv(inv).profit);
-      dayLabels.push(tmp.toLocaleDateString('ar-EG',{month:'numeric',day:'numeric'}));
-      dayProfit.push(p);
-      tmp.setDate(tmp.getDate()+1); safety++;
-    }
-    if(chartR)chartR.destroy();
-    chartR=new Chart($('repChart'),{type:'bar',data:{labels:dayLabels,datasets:[{data:dayProfit,backgroundColor:'rgba(212,175,55,0.6)',borderColor:'#d4af37',borderWidth:1}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}}});
-
+    $('repTable').innerHTML = h+'</tbody>';
+    $('repPrintTitle').textContent = 'تقرير الجملة';
+    $('repPrintDates').textContent = `${fmtDate(from)} - ${fmtDate(to)}`;
   } else {
-    let totalR=0,profitR=0,retTotal=0;
+    let totalR=0, profitR=0;
     const sales = S.retail.filter(s=>s.date>=from && s.date<=to);
     sales.forEach(s=>{const c=calcRetail(s);totalR+=c.total;profitR+=c.profit;});
-    retTotal = S.returns.filter(r=>r.date>=from && r.date<=to).reduce((a,r)=>a+(+r.total||0),0);
-    const netSales = totalR - retTotal;
+    const returns = S.returns.filter(r=>r.date>=from && r.date<=to).reduce((a,r)=>a+(+r.total||0),0);
+    const netProfit = profitR - returns;
 
-    $('repStats').innerHTML=`
-      <div class="stat-card gold"><div class="stat-label">المبيعات</div><div class="stat-value">${fmtUSD(totalR)}</div></div>
-      <div class="stat-card red"><div class="stat-label">المرتجعات</div><div class="stat-value red">${fmtUSD(retTotal)}</div></div>
-      <div class="stat-card blue"><div class="stat-label">صافي المبيعات</div><div class="stat-value blue">${fmtUSD(netSales)}</div></div>
-      <div class="stat-card green"><div class="stat-label">الأرباح</div><div class="stat-value green">${fmtUSD(profitR)}</div></div>`;
+    $('repStats').innerHTML = `
+      <div class="stat-card"><div class="stat-label">عدد العمليات</div><div class="stat-value">${sales.length}</div></div>
+      <div class="stat-card gold"><div class="stat-label">إجمالي المبيعات</div><div class="stat-value">${fmtUSD(totalR)}</div></div>
+      <div class="stat-card red"><div class="stat-label">المرتجعات</div><div class="stat-value red">${fmtUSD(returns)}</div></div>
+      <div class="stat-card green"><div class="stat-label">صافي الأرباح</div><div class="stat-value green">${fmtUSD(netProfit)}</div></div>`;
 
-    let tableH = '<thead><tr><th>التاريخ</th><th>المنتجات</th><th>الإجمالي</th><th>الربح</th><th>إجراءات</th></tr></thead><tbody>';
-    if(!sales.length) tableH += '<tr><td colspan="5" class="empty">لا مبيعات في هذه الفترة</td></tr>';
-    else sales.sort((a,b)=>b.date.localeCompare(a.date)).forEach(s => {
+    const dayMap = {};
+    for (let d = new Date(from); d <= new Date(to); d.setDate(d.getDate()+1)) {
+      dayMap[d.toISOString().slice(0,10)] = {sales:0, profit:0};
+    }
+    sales.forEach(s => {
       const c = calcRetail(s);
-      const productsList = s.items.map(i=>esc(i.name)).join(', ');
-      tableH += `<tr>
+      if(dayMap[s.date]) { dayMap[s.date].sales += c.total; dayMap[s.date].profit += c.profit; }
+    });
+    const labels = Object.keys(dayMap).map(d => fmtDate(d));
+    const salesData = Object.values(dayMap).map(x => x.sales);
+    const profitData = Object.values(dayMap).map(x => x.profit);
+
+    if(chartR) chartR.destroy();
+    chartR = new Chart($('repChart'), {
+      type: 'bar',
+      data: { labels, datasets: [
+        {label:'مبيعات', data: salesData, backgroundColor:'rgba(212,175,55,0.6)'},
+        {label:'أرباح', data: profitData, backgroundColor:'rgba(46,204,113,0.6)'}
+      ]},
+      options:{responsive:true,maintainAspectRatio:false}
+    });
+
+    let h='<thead><tr><th>التاريخ</th><th>المنتجات</th><th>الإجمالي</th><th>الربح</th></tr></thead><tbody>';
+    if(!sales.length) h+='<tr><td colspan="4" class="empty">لا مبيعات</td></tr>';
+    else sales.slice().sort((a,b)=>b.date.localeCompare(a.date)).forEach(s=>{
+      const c = calcRetail(s);
+      h+=`<tr>
         <td>${fmtDate(s.date)}</td>
-        <td style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 150px;" title="${productsList}">${productsList}</td>
+        <td>${s.items.map(i=>esc(i.name)).join(', ')}</td>
         <td>${fmtUSD(c.total)}</td>
-        <td class="${c.profit<0?'neg':'pos'}">${fmtUSD(c.profit)}</td>
-        <td><button class="btn-icon" onclick="openRetailModal('${s.id}')" title="تعديل">✎</button></td>
+        <td class="pos">${fmtUSD(c.profit)}</td>
       </tr>`;
     });
-    $('repTable').innerHTML = tableH + '</tbody>';
-
-    // Chart logic
-    const dayLabels=[],dayProfit=[];
-    const start=new Date(from+'T00:00:00'); const end=new Date(to+'T00:00:00'); const tmp=new Date(start); let safety=0;
-    while(tmp<=end&&safety<366){
-      const ds=tmp.toISOString().slice(0,10);
-      let p=0; S.retail.filter(s=>s.date===ds).forEach(s=>p+=calcRetail(s).profit);
-      dayLabels.push(tmp.toLocaleDateString('ar-EG',{month:'numeric',day:'numeric'}));
-      dayProfit.push(p);
-      tmp.setDate(tmp.getDate()+1); safety++;
-    }
-    if(chartR)chartR.destroy();
-    chartR=new Chart($('repChart'),{type:'bar',data:{labels:dayLabels,datasets:[{data:dayProfit,backgroundColor:'rgba(90,156,255,0.6)',borderColor:'#5a9cff',borderWidth:1}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}}});
+    $('repTable').innerHTML = h+'</tbody>';
+    $('repPrintTitle').textContent = 'تقرير المفرق';
+    $('repPrintDates').textContent = `${fmtDate(from)} - ${fmtDate(to)}`;
   }
-
-  showToast('تم توليد التقرير ✓');
 }
 
-function exportReportImage() {
-  const area = $('reportCaptureArea');
-  const title = $('repPrintTitle');
-  const dates = $('repPrintDates');
-  
-  title.style.display = 'block';
-  title.textContent = currentReportType === 'wholesale' ? 'تقرير الجملة' : 'تقرير المفرق';
-  dates.textContent = `من: ${fmtDate($('repFrom').value)} إلى: ${fmtDate($('repTo').value)}`;
-  
-  const bgColor = document.body.classList.contains('light-mode') ? '#ffffff' : '#07070a';
-
-  showToast('جاري تجهيز الصورة...');
-
-  html2canvas(area, {scale: 2, backgroundColor: bgColor}).then(canvas => {
+function exportReportImage(){
+  const el = $('reportCaptureArea');
+  if(!el) return;
+  html2canvas(el, {scale:2, backgroundColor:'#07070a'}).then(canvas=>{
     const a = document.createElement('a');
     a.href = canvas.toDataURL('image/png');
-    a.download = `report_${currentReportType}_${today()}.png`;
+    a.download = `report_${today()}.png`;
     a.click();
-    
-    title.style.display = 'none';
-    dates.textContent = '';
-    showToast('تم تصدير الصورة بنجاح 📸');
-  }).catch(err => {
-    console.error(err);
-    showToast('حدث خطأ أثناء التصدير', true);
-    title.style.display = 'none';
+    showToast('تم تصدير التقرير 📸');
   });
 }
-/* ========================================= */
 
 /* ===== Settings ===== */
 function renderSettings(){
-  $('setRetailName').value=S.settings.retailName;
-  $('setWholesaleName').value=S.settings.wholesaleName;
-  $('setRate').value=S.settings.rate;
-  $('setWa').value=S.settings.wa;
-  $('setPin').value=S.settings.pin||'';
+  $('setRetailName').value = S.settings.retailName||'';
+  $('setWholesaleName').value = S.settings.wholesaleName||'';
+  $('setRate').value = S.settings.rate||89000;
+  $('setWa').value = S.settings.wa||'';
+  $('setPin').value = S.settings.pin||'';
+  $('setStaffPin').value = S.settings.staffPin||'';
 }
 function saveSettings(){
-  const pin=$('setPin').value.trim();
-  if(pin&&!/^\d{4}$/.test(pin)) return showToast('PIN يجب أن يكون 4 أرقام',true);
-  S.settings.retailName=$('setRetailName').value.trim();
-  S.settings.wholesaleName=$('setWholesaleName').value.trim();
-  S.settings.rate=+$('setRate').value||89000;
-  S.settings.wa=$('setWa').value.trim();
-  S.settings.pin=pin;
-  persist();showToast('تم الحفظ ☁️');
-}
-function resetAll(){
-  if(confirm('حذف كل البيانات نهائياً؟')){localStorage.clear();location.reload();}
+  S.settings.retailName = $('setRetailName').value.trim() || 'Fayrouza scarves';
+  S.settings.wholesaleName = $('setWholesaleName').value.trim() || 'Fayrouza ALherz';
+  S.settings.rate = +$('setRate').value || 89000;
+  S.settings.wa = $('setWa').value.trim();
+  S.settings.pin = ($('setPin').value||'').trim();
+  S.settings.staffPin = ($('setStaffPin').value||'').trim();
+  persist();
+  showToast('تم حفظ الإعدادات ☁️');
 }
 
-/* ===== Export / Import ===== */
+/* ===== Backup / Restore ===== */
 function exportJSON(){
-  const blob = new Blob([JSON.stringify(S,null,2)], {type:'application/json'});
+  const data = JSON.stringify(S, null, 2);
+  const blob = new Blob([data], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
+  a.href = url;
   a.download = `fayrouza_backup_${today()}.json`;
   a.click();
-  showToast('تم تصدير النسخة ✓');
+  URL.revokeObjectURL(url);
+  showToast('تم التصدير 📥');
 }
-function importJSON(e){
-  const file = e.target.files[0];
+function importJSON(file){
   if(!file) return;
   const reader = new FileReader();
-  reader.onload = (ev) => {
+  reader.onload = (e) => {
     try{
-      const data = JSON.parse(ev.target.result);
-      if(!confirm('استيراد البيانات؟ سيتم استبدال البيانات الحالية.')) return;
-      Object.keys(S).forEach(k=>{ if(data[k]!==undefined) S[k]=data[k]; });
-      persist();
-      showToast('تم الاستيراد بنجاح ✓');
-      document.querySelectorAll('.nav-item').forEach(b=>b.classList.remove('active'));
-      document.querySelector('.nav-item[data-page="dashboard"]').classList.add('active');
-      document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-      $('page-dashboard').classList.add('active');
-      renderPage('dashboard');
-    }catch(err){ showToast('ملف غير صالح', true); }
+      const data = JSON.parse(e.target.result);
+      if(confirm('سيتم استبدال جميع البيانات الحالية. متابعة؟')){
+        Object.keys(S).forEach(k => { if(data[k] !== undefined) S[k] = data[k]; });
+        persist();
+        showToast('تم الاستيراد ☁️');
+        renderPage(document.querySelector('.nav-item.active')?.dataset.page || 'dashboard');
+      }
+    }catch(err){
+      showToast('ملف غير صالح',true);
+    }
   };
   reader.readAsText(file);
-  e.target.value = '';
+}
+function resetAll(){
+  if(!confirm('سيتم حذف جميع البيانات نهائياً. متأكد؟')) return;
+  if(!confirm('تأكيد أخير: حذف كل شيء؟')) return;
+  Object.keys(S).forEach(k=>{
+    if(k === 'settings') return;
+    S[k] = [];
+  });
+  persist();
+  showToast('تم الحذف');
+  renderPage('dashboard');
 }
 
-/* ===== Modal & Init ===== */
-function openModal(title,body){$('modalTitle').textContent=title;$('modalBody').innerHTML=body;$('modalOverlay').classList.add('show')}
-function closeModal(){$('modalOverlay').classList.remove('show')}
+/* ===== Modal ===== */
+function openModal(title, body){
+  $('modalTitle').textContent = title;
+  $('modalBody').innerHTML = body;
+  $('modalOverlay').classList.add('show');
+}
+function closeModal(){
+  $('modalOverlay').classList.remove('show');
+}
 
-document.addEventListener('DOMContentLoaded',()=>{
-  Chart.defaults.color='#8f8a7e';
-  Chart.defaults.font.family='Cairo, sans-serif';
-  
-  document.querySelectorAll('#whFilter button').forEach(b=>{b.onclick=()=>{document.querySelectorAll('#whFilter button').forEach(x=>x.classList.remove('active'));b.classList.add('active');renderWholesale();}});
-  $('whSearch').oninput=()=>renderWholesale();
+/* ===== Init ===== */
+document.addEventListener('DOMContentLoaded', () => {
+  setupPin();
+
+  const importInput = $('importFile');
+  if(importInput) importInput.onchange = (e) => importJSON(e.target.files[0]);
+
+  const whSearch = $('whSearch');
+  if(whSearch) whSearch.oninput = renderWholesale;
+
+  document.querySelectorAll('#whFilter button').forEach(b=>{
+    b.onclick = () => {
+      document.querySelectorAll('#whFilter button').forEach(x=>x.classList.remove('active'));
+      b.classList.add('active');
+      renderWholesale();
+    };
+  });
 
   document.querySelectorAll('#repFilter button').forEach(b=>{
-    b.onclick=()=>{
+    b.onclick = () => {
       document.querySelectorAll('#repFilter button').forEach(x=>x.classList.remove('active'));
       b.classList.add('active');
       currentReportType = b.dataset.r;
@@ -1825,17 +1929,17 @@ document.addEventListener('DOMContentLoaded',()=>{
     };
   });
 
-  $('modalOverlay').onclick=e=>{if(e.target.id==='modalOverlay')closeModal()};
-  $('importFile').onchange=importJSON;
-  setupPin();
-
-  if(S.settings.pin && S.settings.pin.length===4){
+  // فتح شاشة القفل إذا كان هناك رمز
+  const hasAdmin = (S.settings.pin||'').trim();
+  const hasStaff = (S.settings.staffPin||'').trim();
+  if(hasAdmin || hasStaff){
     $('pinLock').classList.add('show');
   } else {
+    currentRole = 'admin';
+    document.body.classList.remove('role-staff');
     renderPage('dashboard');
   }
 });
 </script>
 </body>
 </html>
-```
